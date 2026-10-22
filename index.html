@@ -1,0 +1,1107 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Mano a Mano</title>
+<meta name="description" content="Mano a Mano: organizar el cuidado en familia.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Lexend:wght@500;600;700&display=swap">
+<!-- Librería oficial de Supabase (versión fija) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
+<style>
+/* =====================================================================
+   ESTILOS. Colores y tipografía en variables (tokens) para modo claro y oscuro.
+   ===================================================================== */
+:root{
+  --bg:#f3f6f8; --surface:#ffffff; --ink:#16232f; --ink-soft:#4a5a68; --line:#d3dde4;
+  --accent:#1f5f8b; --accent-ink:#ffffff; --accent-soft:#e1eef7;
+  --ok:#2c7a4b; --ok-soft:#e2f2e8; --warn:#9a5b00; --warn-soft:#fdf0d9; --danger:#b3261e; --danger-soft:#fbe4e2;
+  --font-body:"Atkinson Hyperlegible","Verdana","Segoe UI",system-ui,sans-serif;
+  --font-display:"Lexend","Atkinson Hyperlegible","Verdana",system-ui,sans-serif;
+  --scale:1; --radius:14px; color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f171e; --surface:#18232d; --ink:#eef3f6; --ink-soft:#a9b8c4; --line:#2c3b48;
+    --accent:#7cb8e4; --accent-ink:#0b1720; --accent-soft:#1d3346;
+    --ok:#7fd3a0; --ok-soft:#173327; --warn:#f2bf6b; --warn-soft:#3a2c12; --danger:#ff9a91; --danger-soft:#3d1c1a; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f171e; --surface:#18232d; --ink:#eef3f6; --ink-soft:#a9b8c4; --line:#2c3b48;
+  --accent:#7cb8e4; --accent-ink:#0b1720; --accent-soft:#1d3346;
+  --ok:#7fd3a0; --ok-soft:#173327; --warn:#f2bf6b; --warn-soft:#3a2c12; --danger:#ff9a91; --danger-soft:#3d1c1a; color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{font-size:calc(18px * var(--scale))}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:1rem;line-height:1.5;
+  padding-left:max(16px, env(safe-area-inset-left,0px));padding-right:max(16px, env(safe-area-inset-right,0px));
+  padding-block:env(safe-area-inset-top,0px) calc(96px + env(safe-area-inset-bottom,0px))}
+h1,h2,h3{font-family:var(--font-display);text-wrap:balance;margin:0;line-height:1.2}
+h1{font-size:1.9rem} h2{font-size:1.5rem} h3{font-size:1.15rem}
+p{margin:0}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.wrap{max-width:640px;margin:0 auto}
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);display:flex;align-items:center;justify-content:space-between;gap:12px;padding-block:12px;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.brand svg{flex:none}
+.brand b{font-family:var(--font-display);font-size:1.2rem}
+.brand small{display:block;color:var(--ink-soft);font-size:.75rem;line-height:1.2}
+.tools{display:flex;gap:6px;flex:none}
+.tool{min-width:48px;height:48px;border-radius:12px;border:1px solid var(--line);background:var(--surface);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:4px;padding:0 8px;font-weight:700}
+main section,.pantalla{display:flex;flex-direction:column;gap:16px;padding-top:20px}
+.intro{color:var(--ink-soft)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.card.hi{border-color:var(--accent);background:var(--accent-soft)}
+.label{font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-soft);font-weight:700}
+.big{font-family:var(--font-display);font-size:1.3rem;font-weight:600}
+.row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.grow{flex:1;min-width:0}
+.muted{color:var(--ink-soft)}
+.small{font-size:.85rem}
+.list{display:flex;flex-direction:column;gap:10px;margin:0;padding:0;list-style:none}
+.btn{min-height:56px;border-radius:12px;border:2px solid var(--accent);background:var(--accent);color:var(--accent-ink);font-weight:700;padding:0 18px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;text-align:center}
+.btn.ghost{background:transparent;color:var(--accent)}
+.btn.danger{background:var(--danger);border-color:var(--danger);color:#fff}
+.btn.small{min-height:48px;padding:0 12px;font-size:.9rem}
+.btn.full{width:100%}
+.btn[disabled]{opacity:.6;cursor:wait}
+.quick{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.quick button{min-height:84px;border-radius:var(--radius);border:1px solid var(--line);background:var(--surface);cursor:pointer;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:4px;padding:12px 14px;text-align:left}
+.quick button b{font-family:var(--font-display);font-size:1.05rem}
+.quick button span{font-size:.8rem;color:var(--ink-soft)}
+.item{display:flex;gap:12px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px;flex-wrap:wrap}
+.when{flex:none;width:76px;text-align:center;font-variant-numeric:tabular-nums}
+.when b{display:block;font-family:var(--font-display);font-size:1.3rem}
+.when span{font-size:.75rem;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.06em}
+.item .grow b{display:block}
+.item.done{background:var(--ok-soft);border-color:var(--ok)}
+.pend{flex-direction:column;align-items:stretch}
+.pend.late{background:var(--warn-soft);border-color:var(--warn)}
+.chip{display:inline-block;align-self:flex-start;font-size:.8rem;font-weight:700;padding:4px 10px;border-radius:999px;background:var(--accent-soft);color:var(--accent)}
+.late .chip{background:var(--warn);color:var(--bg)}
+.acciones{display:flex;gap:8px;width:100%}
+.acciones .btn{flex:1}
+.dos{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.nota{margin-top:6px;padding:8px 10px;border-radius:10px;background:var(--accent-soft);white-space:pre-wrap;font-size:.95rem}
+.por{display:block;font-size:.8rem;color:var(--ink-soft);font-weight:400}
+.check{display:flex;gap:14px;align-items:center;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--surface);cursor:pointer;min-height:60px}
+.check input{width:28px;height:28px;accent-color:var(--ok);flex:none}
+.check.on{background:var(--ok-soft);border-color:var(--ok)}
+.group h3{margin-bottom:6px}
+.progress{height:12px;border-radius:999px;background:var(--line);overflow:hidden}
+.progress i{display:block;height:100%;background:var(--ok);width:0;transition:width .3s}
+form.add{display:grid;gap:10px}
+label.f{display:flex;flex-direction:column;gap:4px;font-weight:700;font-size:.9rem;min-width:0}
+input[type=text],input[type=tel],input[type=date],input[type=time],input[type=email],input[type=password],select,textarea{min-height:52px;border:1px solid var(--line);border-radius:10px;padding:0 12px;background:var(--bg);width:100%}
+textarea{min-height:90px;padding:10px 12px;resize:vertical;line-height:1.4}
+details.adder summary{cursor:pointer;list-style:none}
+details.adder summary::-webkit-details-marker{display:none}
+.emerg{background:var(--danger-soft);border-color:var(--danger)}
+.emerg .big{color:var(--danger)}
+.phone{font-variant-numeric:tabular-nums;font-size:1.15rem;font-weight:700;user-select:all}
+.av{width:84px;height:84px;border-radius:20px;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-family:var(--font-display);font-size:2rem;font-weight:700;flex:none}
+.av.sm{width:34px;height:34px;border-radius:10px;font-size:1rem}
+.av.md{width:52px;height:52px;border-radius:14px;font-size:1.4rem}
+.permisos{display:flex;flex-wrap:wrap;gap:8px}
+.permisos label{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid var(--line);border-radius:999px;font-size:.85rem;cursor:pointer;background:var(--bg)}
+.permisos input{width:20px;height:20px;accent-color:var(--accent)}
+.carpeta{display:flex;align-items:center;gap:14px;width:100%;text-align:left;cursor:pointer;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px;min-height:72px}
+.carpeta svg{flex:none;width:36px;height:36px;color:var(--accent)}
+.carpeta b{display:block;font-family:var(--font-display);font-size:1.1rem}
+.fotos{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.foto{display:flex;flex-direction:column;gap:4px;border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:6px;cursor:pointer;text-align:left;min-width:0}
+.foto img,.foto .ph{width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:8px;background:var(--line);display:block}
+.foto span{font-size:.8rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.foto .desc{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.subir{position:relative;overflow:hidden}
+.subir input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.visor{position:fixed;inset:0;z-index:15;background:rgb(10,16,22);overflow:auto;padding:max(16px, env(safe-area-inset-top,0px)) max(16px, env(safe-area-inset-right,0px)) max(16px, env(safe-area-inset-bottom,0px)) max(16px, env(safe-area-inset-left,0px))}
+.visor .in{max-width:900px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+.visor img{max-width:100%;max-height:72vh;object-fit:contain;border-radius:8px;align-self:center;background:#fff}
+.perfil-fila{display:flex;flex-direction:column;gap:2px;padding-block:8px;border-bottom:1px solid var(--line)}
+.perfil-fila:last-child{border-bottom:0}
+.perfil-fila .v{white-space:pre-wrap}
+.perfil-fila .v.vacio{color:var(--ink-soft);font-style:italic}
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:var(--line);padding:4px;border-radius:12px}
+.tabs button{min-height:48px;border:0;border-radius:9px;background:transparent;font-weight:700;cursor:pointer;color:var(--ink-soft)}
+.tabs button[aria-selected="true"]{background:var(--surface);color:var(--ink)}
+.codigo{font-family:ui-monospace,Consolas,monospace;font-size:1.5rem;letter-spacing:.12em;font-weight:700;user-select:all;text-align:center;padding:10px;border:2px dashed var(--accent);border-radius:12px}
+.mensaje{white-space:pre-wrap;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px;font-size:.9rem;user-select:all}
+.error{color:var(--danger);font-weight:700}
+nav.bar{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--surface);border-top:1px solid var(--line);padding:6px max(8px, env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(8px, env(safe-area-inset-left,0px))}
+nav.bar .in{max-width:640px;margin:0 auto;display:grid;grid-template-columns:repeat(6,1fr);gap:2px}
+nav.bar button{min-height:64px;border:0;background:transparent;border-radius:12px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--ink-soft);font-size:.72rem;font-weight:700}
+nav.bar button svg{width:28px;height:28px}
+nav.bar button[aria-current="page"]{background:var(--accent-soft);color:var(--accent)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(88px + env(safe-area-inset-bottom,0px));z-index:30;max-width:min(560px, calc(100% - 32px));background:var(--ink);color:var(--bg);padding:12px 16px;border-radius:12px;font-weight:700}
+.alarm{position:fixed;inset:auto 0 calc(80px + env(safe-area-inset-bottom,0px)) 0;z-index:9;padding:0 max(16px, env(safe-area-inset-right,0px)) 0 max(16px, env(safe-area-inset-left,0px))}
+.alarm .card{max-width:600px;margin:0 auto;border:3px solid var(--accent);box-shadow:0 10px 30px rgba(0,0,0,.25)}
+.confirm{display:flex;gap:8px;flex-wrap:wrap;width:100%;align-items:center}
+.cargando{display:flex;align-items:center;justify-content:center;min-height:60vh;color:var(--ink-soft)}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+@media (max-width:430px){.brand small{display:none}}
+@media (max-width:380px){.quick{grid-template-columns:1fr}.dos{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- =====================================================================
+     PANTALLAS
+     ===================================================================== -->
+
+<div id="v-carga" class="cargando">Cargando Mano a Mano…</div>
+
+<!-- 1. ENTRAR O CREAR CUENTA -->
+<div id="v-auth" class="wrap pantalla" hidden>
+  <div class="row" style="padding-top:24px">
+    <svg width="56" height="56" viewBox="0 0 48 48" aria-hidden="true"><circle cx="18" cy="24" r="12" fill="none" stroke="currentColor" stroke-width="3"/><circle cx="30" cy="24" r="12" fill="none" stroke="var(--accent)" stroke-width="3"/></svg>
+    <div><h1>Mano a Mano</h1><p class="muted">Cuidar en familia, entre todos.</p></div>
+  </div>
+  <p id="aviso-config" class="card error" hidden>Falta poner la clave de Supabase en el archivo (busca «PEGA_AQUI»). Sin ella la app no puede guardar nada.</p>
+
+  <div class="tabs" role="tablist">
+    <button type="button" role="tab" id="tab-entrar" aria-selected="true">Entrar</button>
+    <button type="button" role="tab" id="tab-registro" aria-selected="false">Crear mi cuenta</button>
+  </div>
+
+  <form class="card add" id="f-entrar">
+    <label class="f" for="e-correo">Correo electrónico<input id="e-correo" type="email" autocomplete="email" required></label>
+    <label class="f" for="e-pass">Contraseña<input id="e-pass" type="password" autocomplete="current-password" required></label>
+    <button class="btn" type="submit">Entrar</button>
+    <button class="btn ghost small" type="button" id="b-olvido">He olvidado mi contraseña</button>
+  </form>
+
+  <form class="card add" id="f-registro" hidden>
+    <label class="f" for="r-nombre">Tu nombre<input id="r-nombre" type="text" autocomplete="given-name" placeholder="Ej.: Maleni" required></label>
+    <label class="f" for="r-correo">Correo electrónico<input id="r-correo" type="email" autocomplete="email" required></label>
+    <label class="f" for="r-pass">Contraseña (mínimo 6 caracteres)<input id="r-pass" type="password" autocomplete="new-password" minlength="6" required></label>
+    <button class="btn" type="submit">Crear mi cuenta</button>
+    <p class="muted small">Al crear tu cuenta aceptas que tus datos se guarden de forma privada para organizar el cuidado. Versión de prueba.</p>
+  </form>
+
+  <form class="card add" id="f-olvido" hidden>
+    <p>Te enviaremos un correo con un enlace para elegir una contraseña nueva.</p>
+    <label class="f" for="o-correo">Correo electrónico<input id="o-correo" type="email" autocomplete="email" required></label>
+    <button class="btn" type="submit">Enviar el correo</button>
+    <button class="btn ghost small" type="button" id="b-volver-entrar">Volver</button>
+  </form>
+
+  <form class="card add" id="f-nueva" hidden>
+    <h3>Elige tu nueva contraseña</h3>
+    <label class="f" for="n-pass">Nueva contraseña (mínimo 6 caracteres)<input id="n-pass" type="password" autocomplete="new-password" minlength="6" required></label>
+    <button class="btn" type="submit">Guardar contraseña</button>
+  </form>
+</div>
+
+<!-- 2. ELEGIR O CREAR LA PERSONA CUIDADA -->
+<div id="v-inicio" class="wrap pantalla" hidden>
+  <div style="padding-top:24px"><h1 id="ini-hola">Hola</h1><p class="intro">¿A quién cuidáis en familia?</p></div>
+  <div id="mis-cuentas" class="list"></div>
+
+  <details class="adder card" id="d-crear">
+    <summary class="btn full">Empezar a organizar un cuidado</summary>
+    <form class="add" id="f-crear" style="margin-top:10px">
+      <p class="muted small">Serás quien gestiona la cuenta: podrás invitar a la familia y a las cuidadoras y decidir qué ve cada una.</p>
+      <label class="f" for="c-persona">Nombre de la persona que cuidáis<input id="c-persona" type="text" placeholder="Ej.: Rosamari" required></label>
+      <label class="f" for="c-mirol">Quién eres tú para ella<input id="c-mirol" type="text" placeholder="Ej.: Hermana"></label>
+      <button class="btn" type="submit">Crear</button>
+    </form>
+  </details>
+
+  <details class="adder card" id="d-unirse">
+    <summary class="btn ghost full">Tengo un código de invitación</summary>
+    <form class="add" id="f-unirse" style="margin-top:10px">
+      <label class="f" for="u-codigo">Código que te han enviado<input id="u-codigo" type="text" autocomplete="off" placeholder="Ej.: 3fa9c1b27e" required></label>
+      <button class="btn" type="submit">Unirme</button>
+    </form>
+  </details>
+
+  <button class="btn ghost small" type="button" data-salir>Cerrar sesión</button>
+</div>
+
+<!-- 3. LA APP -->
+<div id="v-app" hidden>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <svg width="40" height="40" viewBox="0 0 48 48" aria-hidden="true"><circle cx="18" cy="24" r="12" fill="none" stroke="currentColor" stroke-width="3"/><circle cx="30" cy="24" r="12" fill="none" stroke="var(--accent)" stroke-width="3"/></svg>
+      <div><b>Mano a Mano</b><small id="cab-persona">Cuidar en familia</small></div>
+    </div>
+    <div class="tools">
+      <button class="tool" id="t-yo" type="button" aria-label="Mi perfil"></button>
+      <button class="tool" id="t-size" type="button" aria-label="Cambiar tamaño de letra">A<span style="font-size:1.25em">A</span></button>
+      <button class="tool" id="t-read" type="button" aria-label="Leer esta pantalla en voz alta">
+        <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/><path d="M19 6a8.5 8.5 0 0 1 0 12"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <!-- HOY -->
+    <section id="s-hoy" aria-labelledby="h-hoy">
+      <div><h2 id="h-hoy">Hola</h2><p class="intro" id="hoy-fecha"></p></div>
+      <div class="card hi" id="hoy-proximo"></div>
+      <div class="quick">
+        <button type="button" data-go="avisos"><b>Avisos</b><span id="q-avisos"></span></button>
+        <button type="button" data-go="agenda"><b>Citas</b><span id="q-citas"></span></button>
+        <button type="button" data-go="contactos"><b>Llamar</b><span>Familia y médicos</span></button>
+        <button type="button" data-go="documentos"><b>Documentos</b><span>Informes y papeles</span></button>
+      </div>
+      <div class="card">
+        <div class="row"><div class="grow"><h3>Mi día</h3><p class="muted" id="dia-resumen"></p></div><button class="btn ghost small" type="button" id="t-editar">Editar mi día</button></div>
+        <div class="progress" aria-hidden="true"><i id="dia-bar"></i></div>
+        <p class="muted small">No pasa nada si hoy no se completa todo. Cada pequeño paso cuenta.</p>
+      </div>
+      <div id="checklist" class="list"></div>
+      <details class="adder card" id="d-tarea">
+        <summary class="btn ghost full">Añadir una tarea al día</summary>
+        <form class="add" id="f-tarea" style="margin-top:10px">
+          <label class="f" for="t-texto">Qué hay que hacer<input id="t-texto" type="text" placeholder="Ej.: Cambiarla de postura después de comer" required></label>
+          <label class="f" for="t-grupo">En qué apartado<select id="t-grupo"></select></label>
+          <button class="btn" type="submit" id="t-guardar">Guardar tarea</button>
+          <button class="btn ghost" type="button" id="t-cancelar" hidden>Cancelar</button>
+        </form>
+      </details>
+    </section>
+
+    <!-- CITAS -->
+    <section id="s-agenda" aria-labelledby="h-agenda" hidden>
+      <div><h2 id="h-agenda">Citas</h2><p class="intro" id="agenda-intro">Médicos, revisiones y otras citas.</p></div>
+      <h3>Citas con fecha</h3>
+      <ul class="list" id="citas"></ul>
+      <details class="adder card" id="d-cita">
+        <summary class="btn ghost full">Añadir una cita</summary>
+        <form class="add" id="f-cita" style="margin-top:10px">
+          <label class="f" for="c-que">Qué es<input id="c-que" type="text" placeholder="Ej.: Neurología" required></label>
+          <div class="dos">
+            <label class="f" for="c-fecha">Día<input id="c-fecha" type="date" required></label>
+            <label class="f" for="c-hora">Hora<input id="c-hora" type="time"></label>
+          </div>
+          <label class="f" for="c-donde">Dónde<input id="c-donde" type="text" placeholder="Ej.: Centro de salud"></label>
+          <label class="f" for="c-nota">Notas (opcional)<textarea id="c-nota" rows="3" placeholder="Ej.: Llevar el último informe, la tarjeta sanitaria y la lista de medicación"></textarea></label>
+          <button class="btn" type="submit" id="c-guardar">Guardar cita</button>
+          <button class="btn ghost" type="button" id="c-cancelar" hidden>Cancelar</button>
+        </form>
+      </details>
+
+      <div style="padding-top:12px"><h3>Pendientes de que nos llamen</h3><p class="intro">Llamadas que estamos esperando: una cita, unos resultados, una gestión o una compra. Si pasa el plazo y no han llamado, nos toca llamar a nosotros.</p></div>
+      <ul class="list" id="pendientes"></ul>
+      <details class="adder card" id="d-pend">
+        <summary class="btn ghost full">Añadir una llamada pendiente</summary>
+        <form class="add" id="f-pend" style="margin-top:10px">
+          <label class="f" for="p-tipo">Qué esperamos
+            <select id="p-tipo"><option value="cita">Que nos den una cita</option><option value="resultados">Que nos den unos resultados</option><option value="gestion">Una gestión o un trámite</option><option value="compra">Una compra</option><option value="otro">Otra cosa</option></select>
+          </label>
+          <label class="f" for="p-que">Quién tiene que llamar o de qué se trata<input id="p-que" type="text" placeholder="Ej.: Dermatología, análisis, ayuda a la dependencia" required></label>
+          <div class="dos">
+            <label class="f" for="p-ultima">Desde cuándo (opcional)<input id="p-ultima" type="date"></label>
+            <label class="f" for="p-limite">Si no llaman antes del…<input id="p-limite" type="date" required></label>
+          </div>
+          <label class="f" for="p-nota">Nota (opcional)<input id="p-nota" type="text" placeholder="Ej.: Nos dijeron que llamarían en dos semanas"></label>
+          <button class="btn" type="submit">Guardar pendiente de que nos avisen</button>
+        </form>
+      </details>
+
+      <details class="adder card" id="d-hist" style="margin-top:12px">
+        <summary class="btn ghost full">Ver historial</summary>
+        <p class="intro" style="margin-top:10px">Citas que ya pasaron y llamadas que ya llegaron, de la más reciente a la más antigua.</p>
+        <ul class="list" id="historial"></ul>
+      </details>
+    </section>
+
+    <!-- AVISOS -->
+    <section id="s-avisos" aria-labelledby="h-avisos" hidden>
+      <div><h2 id="h-avisos">Avisos de hoy</h2><p class="intro">Medicación y tareas con hora, tal como las indicó su médico. Mano a Mano solo recuerda: no decide dosis ni horarios.</p></div>
+      <ul class="list" id="avisos"></ul>
+      <details class="adder card" id="d-aviso">
+        <summary class="btn ghost full">Añadir un aviso</summary>
+        <form class="add" id="f-aviso" style="margin-top:10px">
+          <label class="f" for="a-que">Qué hay que recordar<input id="a-que" type="text" placeholder="Ej.: Pastilla de la mañana" required></label>
+          <div class="dos">
+            <label class="f" for="a-hora">Hora<input id="a-hora" type="time" required></label>
+            <label class="f" for="a-tipo">Tipo<select id="a-tipo"><option value="med">Medicación</option><option value="otro">Otra tarea</option></select></label>
+          </div>
+          <label class="f" for="a-nota">Nota (opcional)<input id="a-nota" type="text" placeholder="Ej.: Con el desayuno"></label>
+          <button class="btn" type="submit" id="a-guardar">Guardar aviso</button>
+          <button class="btn ghost" type="button" id="a-cancelar" hidden>Cancelar</button>
+        </form>
+      </details>
+      <p class="muted small">Por ahora el aviso suena solo con la app abierta.</p>
+    </section>
+
+    <!-- CONTACTOS -->
+    <section id="s-contactos" aria-labelledby="h-contactos" hidden>
+      <div><h2 id="h-contactos">Contactos</h2><p class="intro">Las personas a las que llamar, en un solo sitio.</p></div>
+      <div class="card emerg">
+        <p class="big">Emergencias: 112</p>
+        <p>Ante cualquier urgencia, o si aparece de pronto la boca torcida, debilidad en un brazo o una pierna, o dificultad para hablar: llame al 112 sin esperar.</p>
+        <a class="btn danger full" href="tel:112">Llamar al 112</a>
+      </div>
+      <ul class="list" id="contactos"></ul>
+      <details class="adder card" id="d-contacto">
+        <summary class="btn ghost full">Añadir un contacto</summary>
+        <form class="add" id="f-contacto" style="margin-top:10px">
+          <label class="f" for="k-nombre">Nombre<input id="k-nombre" type="text" required></label>
+          <label class="f" for="k-rol">Quién es<input id="k-rol" type="text" placeholder="Ej.: Hija, médico de cabecera"></label>
+          <label class="f" for="k-tel">Teléfono<input id="k-tel" type="tel" inputmode="tel" required></label>
+          <label class="f" for="k-grupo">Grupo<select id="k-grupo"><option>Familia</option><option>Cuidadoras</option><option>Profesionales sanitarios</option><option>Servicios</option><option>Otros</option></select></label>
+          <button class="btn" type="submit" id="k-guardar">Guardar contacto</button>
+          <button class="btn ghost" type="button" id="k-cancelar" hidden>Cancelar</button>
+        </form>
+      </details>
+    </section>
+
+    <!-- DOCUMENTOS -->
+    <section id="s-documentos" aria-labelledby="h-documentos" hidden>
+      <div><h2 id="h-documentos">Documentos</h2><p class="intro">Informes, recetas y papeles, ordenados por apartados.</p></div>
+      <div id="docs-inicio" style="display:flex;flex-direction:column;gap:12px">
+        <div class="list" id="docs-apartados"></div>
+        <details class="adder card" id="d-apartado">
+          <summary class="btn ghost full">Crear un apartado</summary>
+          <form class="add" id="f-apartado" style="margin-top:10px">
+            <label class="f" for="ap-nombre">Nombre del apartado<input id="ap-nombre" type="text" placeholder="Ej.: Informes de neurología" required></label>
+            <button class="btn" type="submit">Crear apartado</button>
+          </form>
+        </details>
+      </div>
+      <div id="docs-carpeta" hidden style="display:flex;flex-direction:column;gap:12px">
+        <button class="btn ghost small" type="button" id="docs-volver" style="align-self:flex-start">← Todos los apartados</button>
+        <div><h3 id="docs-titulo" style="font-size:1.35rem"></h3><p class="muted" id="docs-cuenta"></p></div>
+        <label class="btn full subir" for="docs-subir">Añadir fotos<input id="docs-subir" type="file" accept="image/*" multiple></label>
+        <div class="fotos" id="docs-fotos"></div>
+        <div class="card">
+          <form class="add" id="f-renombrar">
+            <label class="f" for="ap-renombre">Cambiar el nombre del apartado<input id="ap-renombre" type="text" required></label>
+            <div class="acciones"><button class="btn small" type="submit">Guardar nombre</button><button class="btn ghost small" type="button" id="ap-borrar">Borrar apartado</button></div>
+          </form>
+          <div id="ap-borrar-box"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PERFIL -->
+    <section id="s-perfil" aria-labelledby="h-perfil" hidden>
+      <div><h2 id="h-perfil">Perfil</h2></div>
+      <h3>Mi perfil</h3>
+      <div class="card" id="mi-perfil"></div>
+
+      <div id="bloque-paciente" style="display:flex;flex-direction:column;gap:12px;padding-top:8px">
+        <div><h3 id="h-paciente">Ficha de la persona cuidada</h3><p class="intro">Lo importante de un vistazo, para quien la cuide.</p></div>
+        <div class="card" id="perfil-datos"></div>
+        <details class="adder card" id="d-perfil">
+          <summary class="btn ghost full">Modificar la ficha</summary>
+          <form class="add" id="f-perfil" style="margin-top:10px"></form>
+        </details>
+      </div>
+
+      <div id="bloque-cuenta" style="display:flex;flex-direction:column;gap:12px;padding-top:8px">
+        <div><h3>Personas de la cuenta</h3><p class="intro">Cada persona entra con su correo y su contraseña. Aquí decides qué puede ver cada una.</p></div>
+        <ul class="list" id="usuarios"></ul>
+
+        <details class="adder card" id="d-invitar">
+          <summary class="btn full">Invitar a alguien</summary>
+          <form class="add" id="f-invitar" style="margin-top:10px">
+            <label class="f" for="i-nombre">Nombre<input id="i-nombre" type="text" placeholder="Ej.: Chechu" required></label>
+            <label class="f" for="i-rol">Quién es<input id="i-rol" type="text" placeholder="Ej.: Cuidadora de mañana"></label>
+            <fieldset style="border:0;padding:0;margin:0"><legend style="font-weight:700;font-size:.9rem;margin-bottom:6px">Qué podrá ver</legend><div class="permisos" id="i-permisos"></div></fieldset>
+            <button class="btn" type="submit">Crear invitación</button>
+          </form>
+        </details>
+        <div class="card" id="inv-nueva" hidden></div>
+        <div id="inv-pendientes" class="list"></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<nav class="bar" aria-label="Secciones">
+  <div class="in">
+    <button type="button" data-go="hoy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg>Hoy</button>
+    <button type="button" data-go="agenda"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Citas</button>
+    <button type="button" data-go="avisos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>Avisos</button>
+    <button type="button" data-go="contactos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></svg>Llamar</button>
+    <button type="button" data-go="documentos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Docs</button>
+    <button type="button" data-go="perfil"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Perfil</button>
+  </div>
+</nav>
+</div>
+
+<div class="visor" id="visor" hidden role="dialog" aria-label="Ver documento">
+  <div class="in">
+    <div class="acciones"><button class="btn small" type="button" id="visor-cerrar">Cerrar</button></div>
+    <img id="visor-img" alt="">
+    <div class="card">
+      <form class="add" id="f-foto">
+        <p class="muted" id="foto-pista" hidden>Ponle un nombre y, si quieres, una descripción para saber qué es.</p>
+        <label class="f" for="foto-nombre">Nombre<input id="foto-nombre" type="text" placeholder="Ej.: Informe de neurología" required></label>
+        <label class="f" for="foto-desc">Descripción (opcional)<textarea id="foto-desc" rows="3" placeholder="Ej.: Revisión de noviembre. Llevar una copia a la enfermera."></textarea></label>
+        <p class="muted small" id="foto-info"></p>
+        <div class="acciones"><button class="btn small" type="submit">Guardar</button><button class="btn ghost small" type="button" id="foto-borrar">Borrar foto</button></div>
+      </form>
+      <div id="foto-borrar-box"></div>
+    </div>
+  </div>
+</div>
+
+<div class="alarm" id="alarm" hidden>
+  <div class="card" role="alertdialog" aria-labelledby="al-t">
+    <p class="label">Aviso</p>
+    <p class="big" id="al-t"></p>
+    <p class="muted" id="al-n"></p>
+    <div class="acciones">
+      <button class="btn" type="button" id="al-ok">Hecho</button>
+      <button class="btn ghost" type="button" id="al-later">Recordar en 10 min</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast" hidden role="status"></div>
+
+<script>
+/* =====================================================================
+   CONFIGURACIÓN DE SUPABASE
+   La dirección y la clave pública (publishable) del proyecto.
+   Esta clave puede ir en la app: los datos los protegen las reglas de
+   seguridad de la base de datos. NUNCA pongas aquí la Secret key.
+   ===================================================================== */
+const SUPABASE_URL  = 'https://qyehrywdsdembcjhyjvi.supabase.co';
+const SUPABASE_CLAVE = 'sb_publishable_QCzWq5_-8DdMRkNptozzhA_LPS4hguW';
+
+(function(){
+  'use strict';
+
+  /* ---------- Utilidades ---------- */
+  const $ = s => document.querySelector(s);
+  const pad = n => String(n).padStart(2,'0');
+  const isoDe = d => d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+  const hoyISO = () => isoDe(new Date());
+  const ahoraHM = () => { const d=new Date(); return pad(d.getHours())+':'+pad(d.getMinutes()); };
+  const hm = t => (t||'').slice(0,5);
+  const esc = s => String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const fecha = iso => { const [y,m,d]=iso.split('-').map(Number); return new Date(y,m-1,d); };
+  const fmtDia = iso => fecha(iso).toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'});
+  const fmtDiaA = iso => fecha(iso).toLocaleDateString('es-ES',{day:'numeric',month:'long',year:'numeric'});
+  const corto = iso => { const f=fecha(iso); return {dia:f.getDate(), mes:f.toLocaleDateString('es-ES',{month:'short'}).replace('.',''), anio:f.getFullYear()}; };
+  const diasEntre = (a,b) => Math.round((fecha(b)-fecha(a))/86400000);
+  function haceCuanto(iso){ const d=diasEntre(iso, hoyISO()); if(d<45) return 'hace '+d+' días'; const m=Math.round(d/30.4); if(m<12) return 'hace '+m+' meses'; return m<15?'hace un año':'hace más de un año'; }
+  const horaLocal = ts => { const d=new Date(ts); return pad(d.getHours())+':'+pad(d.getMinutes()); };
+  const prefs = (()=>{ try{ return JSON.parse(localStorage.getItem('mam-prefs'))||{}; }catch(e){ return {}; } })();
+  const guardarPrefs = () => { try{ localStorage.setItem('mam-prefs', JSON.stringify(prefs)); }catch(e){} };
+
+  let tt; function aviso(t){ const el=$('#toast'); el.textContent=t; el.hidden=false; clearTimeout(tt); tt=setTimeout(()=>el.hidden=true, 3000); }
+
+  // Traduce los errores más habituales de Supabase a un español claro
+  function textoError(e){
+    const m=((e&&(e.message||e.error_description))||String(e||'')).toLowerCase();
+    if(m.includes('invalid login')) return 'El correo o la contraseña no son correctos.';
+    if(m.includes('already registered')||m.includes('already been registered')) return 'Ese correo ya tiene una cuenta. Prueba a entrar.';
+    if(m.includes('password')&&m.includes('6')) return 'La contraseña debe tener al menos 6 caracteres.';
+    if(m.includes('email not confirmed')) return 'Falta confirmar el correo: revisa tu bandeja de entrada.';
+    if(m.includes('rate limit')||m.includes('too many')) return 'Demasiados intentos seguidos. Espera unos minutos.';
+    if(m.includes('código no es válido')||m.includes('caducado')) return 'El código no es válido o ha caducado. Pide uno nuevo.';
+    if(m.includes('failed to fetch')||m.includes('network')) return 'No hay conexión. Comprueba internet e inténtalo otra vez.';
+    if(m.includes('row-level security')||m.includes('permission denied')) return 'No tienes permiso para hacer esto.';
+    return 'Algo ha fallado: '+((e&&e.message)||'error desconocido');
+  }
+  // Ejecuta una llamada a Supabase y lanza el error si lo hay
+  async function q(promesa){ const r=await promesa; if(r.error) throw r.error; return r.data; }
+  // Envuelve una acción: desactiva el botón mientras trabaja y avisa si falla
+  async function accion(boton, fn){
+    if(boton) boton.disabled=true;
+    try{ return await fn(); }
+    catch(e){ console.error(e); aviso(textoError(e)); }
+    finally{ if(boton) boton.disabled=false; }
+  }
+
+  /* ---------- Conexión ---------- */
+  const configurada = SUPABASE_CLAVE && !SUPABASE_CLAVE.startsWith('PEGA_AQUI') && window.supabase;
+  const sb = configurada ? window.supabase.createClient(SUPABASE_URL, SUPABASE_CLAVE) : null;
+
+  /* ---------- Estado ---------- */
+  let usuario=null;          // quien ha iniciado sesión
+  let membresias=[];         // sus cuentas (personas cuidadas)
+  let cid=null;              // cuenta abierta
+  let yo=null;               // mi fila en "miembros" de esa cuenta
+  const D={cuenta:null, paciente:null, miembros:[], invitaciones:[], citas:[], pendientes:[], historial:[], avisos:[], tareas:[], marcas:[], contactos:[], apartados:[], fotos:[]};
+
+  const PERMISOS=[{k:'agenda',l:'Citas'},{k:'avisos',l:'Avisos y medicación'},{k:'contactos',l:'Contactos'},{k:'cuidadoras',l:'Contactos de otras cuidadoras'},{k:'documentos',l:'Documentos'},{k:'paciente',l:'Ficha de la persona cuidada'}];
+  const COLORES=['#1f5f8b','#2c7a4b','#8a4fa3','#b3541e','#4d6b2f','#a3355a','#5b6b7a','#7a5c1f','#2f6f73'];
+  const TIPOS={cita:'Cita', resultados:'Resultados', gestion:'Gestión', compra:'Compra', otro:'Otra cosa'};
+  const GRUPOS_T=['Cuidado personal','Comida y bebida','Terapia','Ánimo y descanso','Otras tareas'];
+  const GRUPOS_C=['Familia','Cuidadoras','Profesionales sanitarios','Servicios','Otros'];
+  const puede = k => !!(yo && (yo.admin || (yo.permisos && yo.permisos[k])));
+  const persona = () => (D.cuenta && D.cuenta.nombre) || 'la persona cuidada';
+  const nombreMiembro = id => { const m=D.miembros.find(x=>x.id===id); return m?m.nombre:'alguien'; };
+  function avatar(u, tam){ return '<span class="av'+(tam?' '+tam:'')+'" style="background:'+esc(u.color||COLORES[0])+'" aria-hidden="true">'+esc((u.nombre||'?').trim().charAt(0).toUpperCase())+'</span>'; }
+
+  /* ---------- Pantallas ---------- */
+  function mostrar(v){ ['v-carga','v-auth','v-inicio','v-app'].forEach(x => $('#'+x).hidden = x!==v); window.scrollTo({top:0}); }
+
+  /* =====================================================================
+     1. ENTRAR, CREAR CUENTA Y CONTRASEÑA
+     ===================================================================== */
+  function verForm(id){ ['f-entrar','f-registro','f-olvido','f-nueva'].forEach(f => $('#'+f).hidden = f!==id);
+    $('#tab-entrar').setAttribute('aria-selected', id==='f-entrar'); $('#tab-registro').setAttribute('aria-selected', id==='f-registro'); }
+  $('#tab-entrar').addEventListener('click', ()=>verForm('f-entrar'));
+  $('#tab-registro').addEventListener('click', ()=>verForm('f-registro'));
+  $('#b-olvido').addEventListener('click', ()=>{ $('#o-correo').value=$('#e-correo').value; verForm('f-olvido'); });
+  $('#b-volver-entrar').addEventListener('click', ()=>verForm('f-entrar'));
+
+  $('#f-entrar').addEventListener('submit', e => { e.preventDefault(); accion(e.submitter, async () => {
+    await q(sb.auth.signInWithPassword({email:$('#e-correo').value.trim(), password:$('#e-pass').value}));
+  }); });
+  $('#f-registro').addEventListener('submit', e => { e.preventDefault(); accion(e.submitter, async () => {
+    const r=await q(sb.auth.signUp({email:$('#r-correo').value.trim(), password:$('#r-pass').value, options:{data:{nombre:$('#r-nombre').value.trim()}, emailRedirectTo: location.origin+location.pathname}}));
+    if(!r.session){ aviso('Te hemos enviado un correo para confirmar tu cuenta.'); verForm('f-entrar'); }
+  }); });
+  $('#f-olvido').addEventListener('submit', e => { e.preventDefault(); accion(e.submitter, async () => {
+    await q(sb.auth.resetPasswordForEmail($('#o-correo').value.trim(), {redirectTo: location.origin+location.pathname}));
+    aviso('Si el correo tiene cuenta, te llegará un enlace en unos minutos.'); verForm('f-entrar');
+  }); });
+  $('#f-nueva').addEventListener('submit', e => { e.preventDefault(); accion(e.submitter, async () => {
+    await q(sb.auth.updateUser({password:$('#n-pass').value})); aviso('Contraseña cambiada.');
+  }); });
+  document.addEventListener('click', e => { if(e.target.closest('[data-salir]')) accion(null, async () => { await sb.auth.signOut(); }); });
+
+  const miNombre = () => (usuario && usuario.user_metadata && usuario.user_metadata.nombre) || (usuario && usuario.email ? usuario.email.split('@')[0] : '');
+
+  /* =====================================================================
+     2. ELEGIR O CREAR LA PERSONA CUIDADA
+     ===================================================================== */
+  async function alEntrar(){
+    membresias = await q(sb.from('miembros').select('*').eq('user_id', usuario.id));
+    const ids = membresias.map(m=>m.cuenta_id);
+    const cuentas = ids.length ? await q(sb.from('cuentas').select('*').in('id', ids)) : [];
+    membresias.forEach(m => { m.cuenta = cuentas.find(c=>c.id===m.cuenta_id); });
+    const guardada = prefs.cuenta && membresias.find(m=>m.cuenta_id===prefs.cuenta);
+    if(guardada){ await abrirCuenta(guardada.cuenta_id); return; }
+    if(membresias.length===1){ await abrirCuenta(membresias[0].cuenta_id); return; }
+    pintarInicio();
+  }
+  function pintarInicio(){
+    $('#ini-hola').textContent='Hola, '+miNombre();
+    const box=$('#mis-cuentas'); box.innerHTML='';
+    membresias.forEach(m => {
+      const b=document.createElement('button'); b.type='button'; b.className='carpeta';
+      b.innerHTML=avatar({nombre:(m.cuenta&&m.cuenta.nombre)||'?', color:m.color},'md')+'<span class="grow"><b>'+esc((m.cuenta&&m.cuenta.nombre)||'Cuenta')+'</b><span class="muted">Entras como '+esc(m.nombre)+(m.admin?' · gestionas la cuenta':'')+'</span></span><span aria-hidden="true">›</span>';
+      b.addEventListener('click', () => accion(b, () => abrirCuenta(m.cuenta_id)));
+      box.appendChild(b);
+    });
+    $('#d-crear').open = !membresias.length;
+    mostrar('v-inicio');
+  }
+  $('#f-crear').addEventListener('submit', e => { e.preventDefault(); accion(e.submitter, async () => {
+    const nueva = await q(sb.rpc('crear_cuenta', {nombre_paciente:$('#c-persona').value.trim(), mi_nombre:miNombre(), mi_rol:$('#c-mirol').value.trim()}));
+    e.target.reset(); prefs.cuenta=nueva; guardarPrefs(); aviso('¡Cuenta creada! Ya puedes invitar a la familia desde Perfil.'); await alEntrar();
+  }); });
+  $('#f-unirse').addEventListener('submit', e => { e.preventDefault(); accion(e.submitter, async () => {
+    const c = await q(sb.rpc('aceptar_invitacion', {codigo_recibido:$('#u-codigo').value.trim()}));
+    e.target.reset(); prefs.cuenta=c; guardarPrefs(); aviso('¡Bienvenida! Ya formas parte de la cuenta.'); await alEntrar();
+  }); });
+
+  async function abrirCuenta(id){
+    cid=id; prefs.cuenta=id; guardarPrefs();
+    await cargarTodo();
+    if(!yo){ prefs.cuenta=null; guardarPrefs(); pintarInicio(); return; }
+    mostrar('v-app'); aplicarPermisos(); pintarTodo(); ir('hoy');
+  }
+
+  /* ---------- Cargar todos los datos de la cuenta abierta ---------- */
+  async function cargarTodo(){
+    const de = t => q(sb.from(t).select('*').eq('cuenta_id', cid));
+    const [cuentas, miembros] = await Promise.all([q(sb.from('cuentas').select('*').eq('id', cid)), de('miembros')]);
+    D.cuenta=cuentas[0]||null; D.miembros=miembros; yo=miembros.find(m=>m.user_id===usuario.id)||null;
+    if(!yo) return;
+    const vacio = Promise.resolve([]);
+    const [paciente, invit, citas, pend, hist, avisos, tareas, marcas, contactos, apartados, fotos] = await Promise.all([
+      puede('paciente') ? de('paciente') : vacio,
+      yo.admin ? de('invitaciones') : vacio,
+      puede('agenda') ? de('citas') : vacio,
+      puede('agenda') ? de('pendientes') : vacio,
+      puede('agenda') ? de('historial') : vacio,
+      puede('avisos') ? de('avisos') : vacio,
+      de('tareas'),
+      q(sb.from('marcas').select('*').eq('cuenta_id', cid).eq('fecha', hoyISO())),
+      puede('contactos') ? de('contactos') : vacio,
+      puede('documentos') ? de('apartados') : vacio,
+      puede('documentos') ? de('fotos') : vacio
+    ]);
+    Object.assign(D, {paciente:paciente[0]||null, invitaciones:invit, citas, pendientes:pend, historial:hist, avisos, tareas, marcas, contactos, apartados, fotos});
+  }
+  async function recargar(){ if(!cid||!usuario) return; await cargarTodo(); if(!yo){ await alEntrar(); return; } aplicarPermisos(); pintarTodo(); }
+  // Al volver a la app (por ejemplo, desde otra pestaña) se actualiza lo que hayan hecho los demás
+  document.addEventListener('visibilitychange', () => { if(document.visibilityState==='visible' && !$('#v-app').hidden) recargar().catch(()=>{}); });
+  setInterval(() => { if(document.visibilityState==='visible' && !$('#v-app').hidden && $('#visor').hidden) recargar().catch(()=>{}); }, 60000);
+
+  /* ---------- Navegación ---------- */
+  const SECC=['hoy','agenda','avisos','contactos','documentos','perfil'];
+  const CON_PERMISO=['agenda','avisos','contactos','documentos'];
+  function ir(n, foco){
+    if(!SECC.includes(n)) n='hoy';
+    if(CON_PERMISO.includes(n) && !puede(n)) n='hoy';
+    SECC.forEach(s => { $('#s-'+s).hidden = s!==n; });
+    document.querySelectorAll('nav.bar button').forEach(b => { if(b.dataset.go===n) b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current'); });
+    window.scrollTo({top:0});
+    if(foco){ const h=$('#h-'+n); h.setAttribute('tabindex','-1'); h.focus({preventScroll:true}); }
+    try{ window.speechSynthesis && window.speechSynthesis.cancel(); }catch(e){}
+  }
+  document.addEventListener('click', e => { const b=e.target.closest('[data-go]'); if(b) ir(b.dataset.go, true); });
+  $('#t-yo').addEventListener('click', () => ir('perfil', true));
+  function aplicarPermisos(){
+    document.querySelectorAll('[data-go]').forEach(b => { if(CON_PERMISO.includes(b.dataset.go)) b.hidden=!puede(b.dataset.go); });
+    const n=document.querySelectorAll('nav.bar button:not([hidden])').length;
+    $('nav.bar .in').style.gridTemplateColumns='repeat('+n+',1fr)';
+    $('#t-yo').innerHTML = yo ? avatar(yo,'sm') : '';
+    $('#cab-persona').textContent = 'Cuidando de '+persona();
+  }
+  function pintarTodo(){ pintarHoy(); pintarCitas(); pintarPendientes(); pintarHistorial(); pintarAvisos(); pintarContactos(); pintarDocs(); pintarPerfil(); }
+
+  /* ---------- Confirmación dentro de la página ---------- */
+  function pedirConfirmacion(cont, texto, siOk, textoSi){
+    if(cont.querySelector('.confirm-in')) return;
+    const d=document.createElement('div'); d.className='confirm confirm-in';
+    d.innerHTML='<span class="grow">'+esc(texto)+'</span><button class="btn danger small" type="button">'+esc(textoSi||'Sí, borrar')+'</button><button class="btn ghost small" type="button">No</button>';
+    cont.appendChild(d);
+    const [si,no]=d.querySelectorAll('button');
+    si.addEventListener('click', () => accion(si, async () => { await siOk(); d.remove(); }));
+    no.addEventListener('click', ()=>d.remove()); no.focus();
+  }
+
+  /* =====================================================================
+     HOY y MI DÍA
+     ===================================================================== */
+  const hecho = id => D.marcas.find(m=>m.elemento_id===id);
+  const quien = id => { const m=hecho(id); return m ? 'Hecho por '+nombreMiembro(m.hecho_por)+' a las '+horaLocal(m.hecho_el) : ''; };
+  async function marcar(id, si){
+    const m=hecho(id);
+    if(si && !m) await q(sb.from('marcas').insert({cuenta_id:cid, fecha:hoyISO(), elemento_id:id, hecho_por:yo.id}));
+    if(!si && m) await q(sb.from('marcas').delete().eq('id', m.id));
+    D.marcas = await q(sb.from('marcas').select('*').eq('cuenta_id', cid).eq('fecha', hoyISO()));
+    pintarHoy(); pintarAvisos();
+  }
+  const citasProximas = () => D.citas.filter(c=>c.fecha>=hoyISO()).sort((a,b)=>(a.fecha+(a.hora||'')).localeCompare(b.fecha+(b.hora||'')));
+  const avisosOrd = () => [...D.avisos].sort((a,b)=>a.hora.localeCompare(b.hora));
+  let modoEditarDia=false, editandoTarea=null;
+
+  function pintarHoy(){
+    $('#h-hoy').textContent='Hola, '+yo.nombre;
+    $('#hoy-fecha').textContent='Cuidando de '+persona()+' · hoy es '+fmtDia(hoyISO())+'.';
+    const verAv=puede('avisos'), verCi=puede('agenda');
+    const pend=avisosOrd().filter(a=>!hecho(a.id));
+    const sig=pend.find(a=>hm(a.hora)>=ahoraHM())||pend[0];
+    const cita=citasProximas()[0];
+    let html='<p class="label">Diario y recordatorio</p>';
+    if(verAv){ html += sig ? '<p class="big">'+esc(hm(sig.hora))+' · '+esc(sig.que)+'</p>' : (D.avisos.length ? '<p class="big">Todos los avisos de hoy están hechos</p>' : '<p>Todavía no hay avisos. Puedes añadirlos en «Avisos».</p>'); }
+    if(verCi && cita) html += '<p>Próxima cita: <b>'+esc(cita.que)+'</b>, '+esc(fmtDia(cita.fecha))+(cita.hora?' a las '+esc(hm(cita.hora)):'')+(cita.donde?', en '+esc(cita.donde):'')+'.</p>';
+    const tarde=D.pendientes.filter(p=>p.limite<=hoyISO());
+    if(verCi && D.pendientes.length) html += tarde.length ? '<p><b>Conviene llamar:</b> '+esc(tarde.map(p=>p.que).join(', '))+' (ya pasó el plazo).</p>' : '<p>Pendiente de que llamen: <b>'+esc(D.pendientes.map(p=>p.que).join(', '))+'</b>.</p>';
+    if(!verAv && !verCi) html += '<p>Hoy puedes ayudar con las tareas de «Mi día».</p>';
+    $('#hoy-proximo').innerHTML=html;
+    $('#q-avisos').textContent = D.avisos.length ? (pend.length ? pend.length+' pendientes hoy' : 'Todo hecho hoy') : 'Sin avisos';
+    $('#q-citas').textContent = (cita ? 'Próxima: '+corto(cita.fecha).dia+' '+corto(cita.fecha).mes : 'Sin citas próximas') + (D.pendientes.length ? ' · '+D.pendientes.length+' por llamar' : '');
+
+    const cont=$('#checklist'); cont.innerHTML=''; let total=0, hechos=0;
+    if(verAv && D.avisos.length){
+      const box=document.createElement('div'); box.className='group'; box.innerHTML='<h3>Avisos de hoy</h3>';
+      const ul=document.createElement('div'); ul.className='list';
+      avisosOrd().forEach(a => {
+        total++; if(hecho(a.id)) hechos++;
+        const k='hoy-av-'+a.id, lab=document.createElement('label'); lab.className='check'+(hecho(a.id)?' on':''); lab.htmlFor=k;
+        lab.innerHTML='<input type="checkbox" id="'+k+'" '+(hecho(a.id)?'checked':'')+'><span><b>'+esc(hm(a.hora))+'</b> · '+esc(a.que)+(hecho(a.id)?'<span class="por">'+esc(quien(a.id))+'</span>':'')+'</span>';
+        const cb=lab.querySelector('input'); cb.addEventListener('change', () => accion(cb, () => marcar(a.id, cb.checked)));
+        ul.appendChild(lab);
+      });
+      box.appendChild(ul); cont.appendChild(box);
+      if(modoEditarDia){ const n=document.createElement('p'); n.className='muted small'; n.innerHTML='Los avisos se cambian en la sección <button class="btn ghost small" type="button" data-go="avisos">Avisos</button>'; cont.appendChild(n); }
+    }
+    const grupos=[...GRUPOS_T, ...D.tareas.map(t=>t.grupo).filter(g=>!GRUPOS_T.includes(g))].filter((g,i,a)=>a.indexOf(g)===i);
+    grupos.forEach(g => {
+      const ts=D.tareas.filter(t=>t.grupo===g).sort((a,b)=>a.orden-b.orden); if(!ts.length) return;
+      const box=document.createElement('div'); box.className='group'; box.innerHTML='<h3>'+esc(g)+'</h3>';
+      const ul=document.createElement('div'); ul.className='list';
+      ts.forEach(t => {
+        total++; if(hecho(t.id)) hechos++;
+        if(modoEditarDia){
+          const row=document.createElement('div'); row.className='item';
+          row.innerHTML='<div class="grow">'+esc(t.texto)+'</div><div class="acciones"><button class="btn small" type="button" data-edit>Modificar</button><button class="btn ghost small" type="button" data-del>Borrar</button></div>';
+          row.querySelector('[data-edit]').addEventListener('click', () => editarTarea(t));
+          row.querySelector('[data-del]').addEventListener('click', () => pedirConfirmacion(row, '¿Quitar esta tarea del día?', async () => { await q(sb.from('tareas').delete().eq('id', t.id)); D.tareas=D.tareas.filter(x=>x.id!==t.id); pintarHoy(); aviso('Tarea quitada'); }));
+          ul.appendChild(row);
+        } else {
+          const k='chk-'+t.id, lab=document.createElement('label'); lab.className='check'+(hecho(t.id)?' on':''); lab.htmlFor=k;
+          lab.innerHTML='<input type="checkbox" id="'+k+'" '+(hecho(t.id)?'checked':'')+'><span>'+esc(t.texto)+(hecho(t.id)?'<span class="por">'+esc(quien(t.id))+'</span>':'')+'</span>';
+          const cb=lab.querySelector('input'); cb.addEventListener('change', () => accion(cb, () => marcar(t.id, cb.checked)));
+          ul.appendChild(lab);
+        }
+      });
+      box.appendChild(ul); cont.appendChild(box);
+    });
+    $('#dia-resumen').textContent = hechos+' de '+total+' cosas hechas hoy';
+    $('#dia-bar').style.width = (total? hechos/total*100 : 0)+'%';
+    $('#t-editar').textContent = modoEditarDia ? 'Terminar' : 'Editar mi día';
+    const sel=$('#t-grupo'), actual=sel.value; sel.innerHTML=grupos.map(g=>'<option>'+esc(g)+'</option>').join(''); if(actual) sel.value=actual;
+  }
+  $('#t-editar').addEventListener('click', () => { modoEditarDia=!modoEditarDia; pintarHoy(); });
+  function editarTarea(t){ editandoTarea=t.id; const d=$('#d-tarea'); d.open=true; $('#t-texto').value=t.texto; $('#t-grupo').value=t.grupo; $('#t-guardar').textContent='Guardar cambios'; $('#t-cancelar').hidden=false; d.scrollIntoView({block:'center'}); $('#t-texto').focus({preventScroll:true}); }
+  function terminarTarea(){ editandoTarea=null; $('#f-tarea').reset(); $('#t-guardar').textContent='Guardar tarea'; $('#t-cancelar').hidden=true; $('#d-tarea').open=false; }
+  $('#t-cancelar').addEventListener('click', terminarTarea);
+  $('#f-tarea').addEventListener('submit', e => { e.preventDefault(); accion(e.submitter, async () => {
+    const datos={texto:$('#t-texto').value.trim(), grupo:$('#t-grupo').value}; const era=!!editandoTarea;
+    if(editandoTarea) await q(sb.from('tareas').update(datos).eq('id', editandoTarea));
+    else await q(sb.from('tareas').insert({...datos, cuenta_id:cid, orden:D.tareas.length+1}));
+    D.tareas = await q(sb.from('tareas').select('*').eq('cuenta_id', cid));
+    terminarTarea(); pintarHoy(); aviso(era?'Tarea modificada':'Tarea añadida al día');
+  }); });
+
+  /* =====================================================================
+     CITAS, PENDIENTES E HISTORIAL
+     ===================================================================== */
+  let editandoCita=null, convertir=null;
+  function pintarCitas(){
+    $('#agenda-intro').textContent='Médicos, revisiones y otras citas de '+persona()+'.';
+    const ul=$('#citas'), cs=citasProximas();
+    ul.innerHTML = cs.length ? '' : '<li class="card muted">No hay citas próximas. Puedes añadir una abajo.</li>';
+    cs.forEach(c => {
+      const f=corto(c.fecha), li=document.createElement('li'); li.className='item';
+      li.innerHTML='<div class="when"><b>'+f.dia+'</b><span>'+esc(f.mes)+'</span></div><div class="grow"><b>'+esc(c.que)+'</b><span class="muted">'+esc(fmtDia(c.fecha))+(c.hora?' · '+esc(hm(c.hora)):'')+(c.donde?'<br>'+esc(c.donde):'')+'</span>'+(c.nota?'<div class="nota"><b style="display:block">Notas</b>'+esc(c.nota)+'</div>':'')+'</div>'+
+        '<div class="acciones"><button class="btn small" type="button" data-edit>Modificar</button><button class="btn ghost small" type="button" data-del>Borrar</button></div>';
+      li.querySelector('[data-edit]').addEventListener('click', () => editarCita(c));
+      li.querySelector('[data-del]').addEventListener('click', () => pedirConfirmacion(li, '¿Borrar esta cita?', async () => { await q(sb.from('citas').delete().eq('id', c.id)); D.citas=D.citas.filter(x=>x.id!==c.id); pintarCitas(); pintarHoy(); aviso('Cita borrada'); }));
+      ul.appendChild(li);
+    });
+  }
+  function editarCita(c){ editandoCita=c.id; convertir=null; const d=$('#d-cita'); d.open=true; $('#c-que').value=c.que; $('#c-fecha').value=c.fecha; $('#c-hora').value=hm(c.hora); $('#c-donde').value=c.donde||''; $('#c-nota').value=c.nota||''; $('#c-guardar').textContent='Guardar cambios'; $('#c-cancelar').hidden=false; d.scrollIntoView({block:'center'}); $('#c-que').focus({preventScroll:true}); }
+  function terminarCita(){ editandoCita=null; convertir=null; $('#f-cita').reset(); $('#c-guardar').textContent='Guardar cita'; $('#c-cancelar').hidden=true; $('#d-cita').open=false; }
+  $('#c-cancelar').addEventListener('click', terminarCita);
+  $('#f-cita').addEventListener('submit', e => { e.preventDefault(); accion(e.submitter, async () => {
+    const datos={que:$('#c-que').value.trim(), fecha:$('#c-fecha').value, hora:$('#c-hora').value||null, donde:$('#c-donde').value.trim(), nota:$('#c-nota').value.trim()};
+    const era=!!editandoCita;
+    if(editandoCita) await q(sb.from('citas').update(datos).eq('id', editandoCita));
+    else await q(sb.from('citas').insert({...datos, cuenta_id:cid, creado_por:yo.id}));
+    if(convertir){
+      const pc=D.pendientes.find(x=>x.id===convertir);
+      if(pc) await q(sb.from('historial').insert({cuenta_id:cid, fecha:hoyISO(), etiqueta:'Cita', titulo:pc.que, detalle:'Llamaron para dar cita: '+fmtDiaA(datos.fecha), creado_por:yo.id}));
+      await q(sb.from('pendientes').delete().eq('id', convertir));
+    }
+    terminarCita(); await recargar(); aviso(era?'Cita modificada':'Cita guardada');
+  }); });
+
+  function pintarPendientes(){
+    const ul=$('#pendientes'), ps=[...D.pendientes].sort((a,b)=>a.limite.localeCompare(b.limite));
+    ul.innerHTML = ps.length ? '' : '<li class="card muted">No estamos esperando ninguna llamada.</li>';
+    ps.forEach(p => {
+      const quedan=diasEntre(hoyISO(), p.limite), late=quedan<=0, tipo=p.tipo||'cita';
+      const li=document.createElement('li'); li.className='item pend'+(late?' late':'');
+      li.innerHTML='<span class="chip">'+esc(TIPOS[tipo])+' · '+(late?'ya pasó el plazo: conviene llamar':'esperando su llamada')+'</span>'+
+        '<div><b class="big" style="display:block">'+esc(p.que)+'</b>'+
+        (p.ultima?'<span class="muted">'+(tipo==='cita'?'Última cita: ':'Esperando desde el ')+esc(fmtDiaA(p.ultima))+' ('+haceCuanto(p.ultima)+')</span><br>':'')+
+        '<span>'+(late?'El plazo era el '+esc(fmtDia(p.limite))+'. Llamad vosotros.':'Si no llaman antes del <b>'+esc(fmtDia(p.limite))+'</b>, llamad vosotros (quedan '+quedan+' días).')+'</span>'+
+        (p.nota?'<br><span class="muted">'+esc(p.nota)+'</span>':'')+'</div>'+
+        '<div class="acciones"><button class="btn small" type="button" data-ok>'+(tipo==='cita'?'Ya nos han dado cita':'Ya han llamado')+'</button><button class="btn ghost small" type="button" data-del>Borrar</button></div>';
+      li.querySelector('[data-ok]').addEventListener('click', ev => {
+        if(tipo!=='cita'){ accion(ev.currentTarget, async () => {
+          await q(sb.from('historial').insert({cuenta_id:cid, fecha:hoyISO(), etiqueta:TIPOS[tipo], titulo:p.que, detalle:'Ya llamaron', creado_por:yo.id}));
+          await q(sb.from('pendientes').delete().eq('id', p.id)); await recargar(); aviso('Hecho: '+p.que+' ya ha llamado'); }); return; }
+        editandoCita=null; convertir=p.id; const d=$('#d-cita'); d.open=true; $('#c-que').value=p.que; $('#c-guardar').textContent='Guardar cita'; d.scrollIntoView({block:'center'}); $('#c-fecha').focus({preventScroll:true}); aviso('Escribe el día y la hora de la cita');
+      });
+      li.querySelector('[data-del]').addEventListener('click', () => pedirConfirmacion(li, '¿Borrar esta llamada pendiente?', async () => { await q(sb.from('pendientes').delete().eq('id', p.id)); D.pendientes=D.pendientes.filter(x=>x.id!==p.id); pintarPendientes(); pintarHoy(); aviso('Pendiente borrada'); }));
+      ul.appendChild(li);
+    });
+  }
+  $('#f-pend').addEventListener('submit', e => { e.preventDefault(); accion(e.submitter, async () => {
+    await q(sb.from('pendientes').insert({cuenta_id:cid, tipo:$('#p-tipo').value, que:$('#p-que').value.trim(), ultima:$('#p-ultima').value||null, limite:$('#p-limite').value, nota:$('#p-nota').value.trim(), creado_por:yo.id}));
+    e.target.reset(); $('#d-pend').open=false; await recargar(); aviso('Llamada pendiente guardada');
+  }); });
+
+  function pintarHistorial(){
+    const ul=$('#historial'), hoy=hoyISO();
+    const items=[...D.citas.filter(c=>c.fecha<hoy).map(c=>({fecha:c.fecha, etiqueta:'Cita', titulo:c.que, detalle:[hm(c.hora), c.donde, c.nota?'Notas: '+c.nota:''].filter(Boolean).join(' · ')})),
+                 ...D.historial.map(h=>({fecha:h.fecha, etiqueta:h.etiqueta, titulo:h.titulo, detalle:h.detalle||''}))].sort((a,b)=>b.fecha.localeCompare(a.fecha));
+    ul.innerHTML = items.length ? '' : '<li class="muted">Todavía no hay nada en el historial.</li>';
+    items.forEach(it => { const f=corto(it.fecha), li=document.createElement('li'); li.className='item';
+      li.innerHTML='<div class="when"><b>'+f.dia+'</b><span>'+esc(f.mes)+' '+f.anio+'</span></div><div class="grow"><span class="chip">'+esc(it.etiqueta)+'</span><b style="margin-top:4px">'+esc(it.titulo)+'</b><span class="muted">'+esc(fmtDiaA(it.fecha))+(it.detalle?' · '+esc(it.detalle):'')+'</span></div>';
+      ul.appendChild(li); });
+  }
+
+  /* =====================================================================
+     AVISOS
+     ===================================================================== */
+  let editandoAviso=null;
+  function pintarAvisos(){
+    const ul=$('#avisos'); ul.innerHTML = D.avisos.length ? '' : '<li class="card muted">Todavía no hay avisos. Añade la medicación tal como la indicó su médico.</li>';
+    avisosOrd().forEach(a => {
+      const h=hecho(a.id), li=document.createElement('li'); li.className='item'+(h?' done':'');
+      li.innerHTML='<div class="when"><b>'+esc(hm(a.hora))+'</b><span>'+(a.tipo==='med'?'Medicación':'Tarea')+'</span></div><div class="grow"><b>'+esc(a.que)+'</b>'+(a.nota?'<span class="muted">'+esc(a.nota)+'</span>':'')+(h?'<span class="por" style="color:var(--ok);font-weight:700">'+esc(quien(a.id))+'</span>':'')+'</div>'+
+        '<div class="acciones"><button class="btn small '+(h?'ghost':'')+'" type="button" data-hecho>'+(h?'Hecho ✓':'Marcar hecho')+'</button><button class="btn ghost small" type="button" data-edit>Modificar</button><button class="btn ghost small" type="button" data-del>Borrar</button></div>';
+      const bh=li.querySelector('[data-hecho]'); bh.addEventListener('click', () => accion(bh, () => marcar(a.id, !h)));
+      li.querySelector('[data-edit]').addEventListener('click', () => editarAviso(a));
+      li.querySelector('[data-del]').addEventListener('click', () => pedirConfirmacion(li, '¿Borrar este aviso?', async () => { await q(sb.from('avisos').delete().eq('id', a.id)); D.avisos=D.avisos.filter(x=>x.id!==a.id); pintarAvisos(); pintarHoy(); aviso('Aviso borrado'); }));
+      ul.appendChild(li);
+    });
+  }
+  function editarAviso(a){ editandoAviso=a.id; const d=$('#d-aviso'); d.open=true; $('#a-que').value=a.que; $('#a-hora').value=hm(a.hora); $('#a-tipo').value=a.tipo; $('#a-nota').value=a.nota||''; $('#a-guardar').textContent='Guardar cambios'; $('#a-cancelar').hidden=false; d.scrollIntoView({block:'center'}); $('#a-que').focus({preventScroll:true}); }
+  function terminarAviso(){ editandoAviso=null; $('#f-aviso').reset(); $('#a-guardar').textContent='Guardar aviso'; $('#a-cancelar').hidden=true; $('#d-aviso').open=false; }
+  $('#a-cancelar').addEventListener('click', terminarAviso);
+  $('#f-aviso').addEventListener('submit', e => { e.preventDefault(); accion(e.submitter, async () => {
+    const datos={que:$('#a-que').value.trim(), hora:$('#a-hora').value, tipo:$('#a-tipo').value, nota:$('#a-nota').value.trim()}; const era=!!editandoAviso;
+    if(editandoAviso) await q(sb.from('avisos').update(datos).eq('id', editandoAviso));
+    else await q(sb.from('avisos').insert({...datos, cuenta_id:cid}));
+    D.avisos = await q(sb.from('avisos').select('*').eq('cuenta_id', cid));
+    terminarAviso(); pintarAvisos(); pintarHoy(); aviso(era?'Aviso modificado':'Aviso guardado');
+  }); });
+
+  /* Avisos que suenan con la app abierta */
+  let audioCtx=null, avisoActual=null; const pospuestos={}, lanzados={};
+  document.addEventListener('pointerdown', ()=>{ try{ audioCtx ||= new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} }, {once:true});
+  function pitido(){ try{ if(!audioCtx) return; [0,.35].forEach(t=>{ const o=audioCtx.createOscillator(), g=audioCtx.createGain(); o.frequency.value=660; o.connect(g); g.connect(audioCtx.destination); g.gain.setValueAtTime(.0001,audioCtx.currentTime+t); g.gain.exponentialRampToValueAtTime(.2,audioCtx.currentTime+t+.02); g.gain.exponentialRampToValueAtTime(.0001,audioCtx.currentTime+t+.3); o.start(audioCtx.currentTime+t); o.stop(audioCtx.currentTime+t+.32); }); }catch(e){} }
+  function revisarAvisos(){
+    if(avisoActual || $('#v-app').hidden || !puede('avisos')) return;
+    const ahora=ahoraHM(), ms=Date.now();
+    const a=D.avisos.find(a => !hecho(a.id) && ((hm(a.hora)===ahora && !lanzados[a.id+hoyISO()]) || (pospuestos[a.id] && pospuestos[a.id]<=ms)));
+    if(!a) return;
+    lanzados[a.id+hoyISO()]=true; delete pospuestos[a.id]; avisoActual=a;
+    $('#al-t').textContent=hm(a.hora)+' · '+a.que; $('#al-n').textContent=a.nota||''; $('#alarm').hidden=false; pitido(); $('#al-ok').focus();
+  }
+  $('#al-ok').addEventListener('click', ev => accion(ev.currentTarget, async () => { const a=avisoActual; avisoActual=null; $('#alarm').hidden=true; if(a) await marcar(a.id, true); aviso('Marcado como hecho'); }));
+  $('#al-later').addEventListener('click', ()=>{ if(avisoActual) pospuestos[avisoActual.id]=Date.now()+10*60*1000; avisoActual=null; $('#alarm').hidden=true; aviso('Te lo recordaremos en 10 minutos'); });
+  setInterval(revisarAvisos, 30000);
+
+  /* =====================================================================
+     CONTACTOS
+     ===================================================================== */
+  let editandoContacto=null;
+  function pintarContactos(){
+    const ul=$('#contactos'); ul.innerHTML='';
+    const orden=[...D.contactos].sort((a,b)=>GRUPOS_C.indexOf(a.grupo||'Otros')-GRUPOS_C.indexOf(b.grupo||'Otros') || a.nombre.localeCompare(b.nombre));
+    if(!orden.length) ul.innerHTML='<li class="card muted">Todavía no hay contactos. Añade a la familia, las cuidadoras y los médicos.</li>';
+    let ultimo=null;
+    orden.forEach(c => {
+      const g=c.grupo||'Otros';
+      if(g!==ultimo){ const h=document.createElement('li'); h.innerHTML='<h3 style="padding-top:8px">'+esc(g)+'</h3>'; ul.appendChild(h); ultimo=g; }
+      const li=document.createElement('li'); li.className='card';
+      li.innerHTML='<div><p class="big">'+esc(c.nombre)+'</p><p class="muted">'+esc(c.rol||'')+'</p><p class="phone">'+esc(c.tel)+'</p></div>'+
+        '<div class="acciones"><a class="btn" href="tel:'+esc(c.tel.replace(/\s/g,''))+'">Llamar</a><button class="btn ghost" type="button" data-copy aria-label="Copiar número">Copiar</button></div>'+
+        '<div class="acciones"><button class="btn ghost small" type="button" data-edit>Modificar</button><button class="btn ghost small" type="button" data-del>Borrar</button></div>';
+      li.querySelector('[data-copy]').addEventListener('click', () => { const sel=()=>{ const r=document.createRange(); r.selectNodeContents(li.querySelector('.phone')); const s=getSelection(); s.removeAllRanges(); s.addRange(r); aviso('Número seleccionado: puedes copiarlo'); }; try{ navigator.clipboard.writeText(c.tel).then(()=>aviso('Número copiado'), sel); }catch(e){ sel(); } });
+      li.querySelector('[data-edit]').addEventListener('click', () => editarContacto(c));
+      li.querySelector('[data-del]').addEventListener('click', () => pedirConfirmacion(li, '¿Borrar este contacto?', async () => { await q(sb.from('contactos').delete().eq('id', c.id)); D.contactos=D.contactos.filter(x=>x.id!==c.id); pintarContactos(); aviso('Contacto borrado'); }));
+      ul.appendChild(li);
+    });
+    if(!puede('cuidadoras')){ const n=document.createElement('li'); n.className='muted small'; n.textContent='Los contactos de las demás cuidadoras solo los ve la familia.'; ul.appendChild(n); }
+  }
+  function editarContacto(c){ editandoContacto=c.id; const d=$('#d-contacto'); d.open=true; $('#k-nombre').value=c.nombre; $('#k-rol').value=c.rol||''; $('#k-tel').value=c.tel; $('#k-grupo').value=c.grupo||'Otros'; $('#k-guardar').textContent='Guardar cambios'; $('#k-cancelar').hidden=false; d.scrollIntoView({block:'center'}); $('#k-nombre').focus({preventScroll:true}); }
+  function terminarContacto(){ editandoContacto=null; $('#f-contacto').reset(); $('#k-guardar').textContent='Guardar contacto'; $('#k-cancelar').hidden=true; $('#d-contacto').open=false; }
+  $('#k-cancelar').addEventListener('click', terminarContacto);
+  $('#f-contacto').addEventListener('submit', e => { e.preventDefault(); accion(e.submitter, async () => {
+    const datos={nombre:$('#k-nombre').value.trim(), rol:$('#k-rol').value.trim(), tel:$('#k-tel').value.trim(), grupo:$('#k-grupo').value}; const era=!!editandoContacto;
+    if(editandoContacto) await q(sb.from('contactos').update(datos).eq('id', editandoContacto));
+    else await q(sb.from('contactos').insert({...datos, cuenta_id:cid}));
+    D.contactos = await q(sb.from('contactos').select('*').eq('cuenta_id', cid));
+    terminarContacto(); pintarContactos(); aviso(era?'Contacto modificado':'Contacto guardado');
+  }); });
+
+  /* =====================================================================
+     DOCUMENTOS (las fotos se guardan en el almacén privado "documentos")
+     ===================================================================== */
+  const BUCKET='documentos', urls={};
+  const ICONO_CARPETA='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>';
+  let carpeta=null, fotoAbierta=null;
+  async function urlFoto(f){ if(urls[f.ruta] && urls[f.ruta].hasta>Date.now()) return urls[f.ruta].url; const r=await q(sb.storage.from(BUCKET).createSignedUrl(f.ruta, 3600)); urls[f.ruta]={url:r.signedUrl, hasta:Date.now()+50*60*1000}; return r.signedUrl; }
+  function reducir(file){ return new Promise((res,rej)=>{ const fr=new FileReader(); fr.onload=()=>{ const img=new Image(); img.onload=()=>{ const max=1600, s=Math.min(1, max/Math.max(img.width,img.height)); const c=document.createElement('canvas'); c.width=Math.round(img.width*s); c.height=Math.round(img.height*s); c.getContext('2d').drawImage(img,0,0,c.width,c.height); c.toBlob(b => b?res(b):rej(new Error('No se pudo preparar la foto')), 'image/jpeg', 0.8); }; img.onerror=rej; img.src=fr.result; }; fr.onerror=rej; fr.readAsDataURL(file); }); }
+  const nuevoId = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36)+Math.random().toString(36).slice(2));
+  function pintarDocs(){
+    if(carpeta && !D.apartados.find(a=>a.id===carpeta)) carpeta=null;
+    $('#docs-inicio').hidden=!!carpeta; $('#docs-carpeta').hidden=!carpeta;
+    if(!carpeta){
+      const box=$('#docs-apartados'); box.innerHTML = D.apartados.length ? '' : '<p class="card muted">Todavía no hay apartados. Crea el primero abajo.</p>';
+      [...D.apartados].sort((a,b)=>a.nombre.localeCompare(b.nombre)).forEach(a => {
+        const n=D.fotos.filter(f=>f.apartado_id===a.id).length, b=document.createElement('button'); b.type='button'; b.className='carpeta';
+        b.innerHTML=ICONO_CARPETA+'<span class="grow"><b>'+esc(a.nombre)+'</b><span class="muted">'+(n? n+(n===1?' foto':' fotos') : 'Vacío')+'</span></span><span aria-hidden="true">›</span>';
+        b.addEventListener('click', () => { carpeta=a.id; pintarDocs(); window.scrollTo({top:0}); });
+        box.appendChild(b);
+      });
+      return;
+    }
+    const a=D.apartados.find(x=>x.id===carpeta), fs=D.fotos.filter(f=>f.apartado_id===carpeta).sort((x,y)=>y.subido_el.localeCompare(x.subido_el));
+    $('#docs-titulo').textContent=a.nombre;
+    $('#docs-cuenta').textContent = fs.length ? fs.length+(fs.length===1?' foto':' fotos')+', la más reciente primero' : 'Todavía no hay fotos. Pulsa «Añadir fotos» para hacer una foto o elegirla del móvil.';
+    if(document.activeElement!==$('#ap-renombre')) $('#ap-renombre').value=a.nombre;
+    const g=$('#docs-fotos'); g.innerHTML='';
+    fs.forEach(f => {
+      const b=document.createElement('button'); b.type='button'; b.className='foto';
+      b.innerHTML='<span class="ph" aria-hidden="true"></span><span><b>'+esc(f.nombre)+'</b></span>'+(f.descripcion?'<span class="desc">'+esc(f.descripcion)+'</span>':'')+'<span class="muted">'+esc(fmtDiaA(f.subido_el.slice(0,10)))+'</span>';
+      urlFoto(f).then(src => { const im=document.createElement('img'); im.src=src; im.alt=f.nombre; b.querySelector('.ph').replaceWith(im); }).catch(()=>{});
+      b.addEventListener('click', () => abrirVisor(f));
+      g.appendChild(b);
+    });
+  }
+  async function abrirVisor(f, nueva){
+    fotoAbierta=f.id; $('#foto-borrar-box').innerHTML=''; $('#foto-pista').hidden=!nueva;
+    $('#foto-nombre').value=f.nombre; $('#foto-desc').value=f.descripcion||''; $('#visor-img').alt=f.nombre; $('#visor-img').src='';
+    $('#foto-info').textContent='Añadida el '+fmtDiaA(f.subido_el.slice(0,10))+' a las '+horaLocal(f.subido_el)+(f.subido_por?' por '+nombreMiembro(f.subido_por):'');
+    $('#visor').hidden=false;
+    if(nueva){ $('#foto-nombre').focus(); $('#foto-nombre').select(); } else $('#visor-cerrar').focus();
+    try{ $('#visor-img').src=await urlFoto(f); }catch(e){ aviso(textoError(e)); }
+  }
+  function cerrarVisor(){ $('#visor').hidden=true; $('#visor-img').src=''; fotoAbierta=null; }
+  $('#visor-cerrar').addEventListener('click', cerrarVisor);
+  $('#f-foto').addEventListener('submit', e => { e.preventDefault(); accion(e.submitter, async () => {
+    const datos={nombre:$('#foto-nombre').value.trim(), descripcion:$('#foto-desc').value.trim()};
+    await q(sb.from('fotos').update(datos).eq('id', fotoAbierta));
+    const f=D.fotos.find(x=>x.id===fotoAbierta); if(f) Object.assign(f, datos);
+    $('#foto-pista').hidden=true; pintarDocs(); aviso('Guardado');
+  }); });
+  $('#foto-borrar').addEventListener('click', () => pedirConfirmacion($('#foto-borrar-box'), '¿Borrar esta foto?', async () => {
+    const f=D.fotos.find(x=>x.id===fotoAbierta); if(!f) return;
+    await q(sb.storage.from(BUCKET).remove([f.ruta])); await q(sb.from('fotos').delete().eq('id', f.id));
+    D.fotos=D.fotos.filter(x=>x.id!==f.id); cerrarVisor(); pintarDocs(); aviso('Foto borrada');
+  }));
+  $('#f-apartado').addEventListener('submit', e => { e.preventDefault(); accion(e.submitter, async () => {
+    const nuevo=await q(sb.from('apartados').insert({cuenta_id:cid, nombre:$('#ap-nombre').value.trim()}).select().single());
+    D.apartados.push(nuevo); e.target.reset(); $('#d-apartado').open=false; carpeta=nuevo.id; pintarDocs(); aviso('Apartado creado');
+  }); });
+  $('#docs-volver').addEventListener('click', () => { carpeta=null; pintarDocs(); });
+  $('#f-renombrar').addEventListener('submit', e => { e.preventDefault(); accion(e.submitter, async () => {
+    const nombre=$('#ap-renombre').value.trim(); await q(sb.from('apartados').update({nombre}).eq('id', carpeta));
+    const a=D.apartados.find(x=>x.id===carpeta); if(a) a.nombre=nombre; pintarDocs(); aviso('Apartado renombrado');
+  }); });
+  $('#ap-borrar').addEventListener('click', () => {
+    const fs=D.fotos.filter(f=>f.apartado_id===carpeta);
+    pedirConfirmacion($('#ap-borrar-box'), fs.length ? '¿Borrar el apartado y sus '+fs.length+' fotos?' : '¿Borrar este apartado?', async () => {
+      if(fs.length) await q(sb.storage.from(BUCKET).remove(fs.map(f=>f.ruta)));
+      await q(sb.from('apartados').delete().eq('id', carpeta));
+      D.fotos=D.fotos.filter(f=>f.apartado_id!==carpeta); D.apartados=D.apartados.filter(a=>a.id!==carpeta); carpeta=null; pintarDocs(); aviso('Apartado borrado');
+    });
+  });
+  $('#docs-subir').addEventListener('change', async e => {
+    const files=[...e.target.files]; if(!files.length) return;
+    aviso(files.length===1?'Guardando la foto…':'Guardando '+files.length+' fotos…');
+    let ok=0, ultima=null;
+    for(const file of files){
+      try{
+        const blob=await reducir(file), ruta=cid+'/'+nuevoId()+'.jpg';
+        await q(sb.storage.from(BUCKET).upload(ruta, blob, {contentType:'image/jpeg', upsert:false}));
+        ultima=await q(sb.from('fotos').insert({cuenta_id:cid, apartado_id:carpeta, nombre:'Documento del '+fmtDiaA(hoyISO()), descripcion:'', ruta, subido_por:yo.id}).select().single());
+        D.fotos.push(ultima); ok++;
+      }catch(err){ console.error(err); }
+    }
+    e.target.value=''; pintarDocs();
+    aviso(ok===files.length ? (ok===1?'Foto guardada':ok+' fotos guardadas') : 'No se pudo guardar alguna foto. Prueba otra vez.');
+    if(ok===1 && ultima) abrirVisor(ultima, true);
+  });
+
+  /* =====================================================================
+     PERFIL: mi perfil, ficha de la persona cuidada y personas de la cuenta
+     ===================================================================== */
+  const CAMPOS=[
+    {k:'nombre', l:'Nombre', ph:'Ej.: Rosamari'},
+    {k:'nacimiento', l:'Fecha de nacimiento', ph:'Ej.: 3 de marzo de 1950'},
+    {k:'situacion', l:'Situación de salud principal', ph:'Ej.: Ictus en 2023; alzhéimer leve…', largo:true},
+    {k:'dependencia', l:'Grado de dependencia', ph:'Ej.: Grado III'},
+    {k:'otras', l:'Otras enfermedades', ph:'Ej.: Hipertensión', largo:true},
+    {k:'alergias', l:'Alergias', ph:'Ej.: Ninguna conocida'},
+    {k:'comunicacion', l:'Cómo comunicarse con ella', ph:'Ej.: Entiende mejor frases cortas; responde con gestos', largo:true},
+    {k:'movilidad', l:'Movilidad y ayudas', ph:'Ej.: Silla de ruedas; necesita ayuda para levantarse', largo:true},
+    {k:'centro', l:'Centro de salud', ph:'Ej.: Centro de salud de Rota'},
+    {k:'notas', l:'Otras cosas importantes', ph:'Ej.: Le gusta escuchar la radio por la mañana', largo:true}
+  ];
+  function pintarPerfil(){
+    const ve = yo.admin ? 'Todo, y además gestiona la cuenta' : (PERMISOS.filter(p=>yo.permisos&&yo.permisos[p.k]).map(p=>p.l).join(', ') || 'Solo el inicio y «Mi día»');
+    $('#mi-perfil').innerHTML='<div class="row">'+avatar(yo,'md')+'<div class="grow"><p class="big">'+esc(yo.nombre)+'</p><p class="muted">'+esc(yo.rol||'')+'</p><p class="muted small">'+esc(usuario.email||'')+'</p></div></div>'+
+      '<p><span class="label" style="display:block">Puede ver</span>'+esc(ve)+'</p>'+
+      '<div class="acciones"><button class="btn ghost small" type="button" data-cambiar>Cambiar de persona cuidada</button><button class="btn ghost small" type="button" data-salir>Cerrar sesión</button></div>';
+    // Ficha
+    $('#bloque-paciente').hidden=!puede('paciente');
+    $('#h-paciente').textContent='Ficha de '+persona();
+    const p=(D.paciente&&D.paciente.datos)||{};
+    $('#perfil-datos').innerHTML=CAMPOS.map(c=>'<div class="perfil-fila"><span class="label">'+esc(c.l)+'</span><span class="v'+(p[c.k]?'':' vacio')+'">'+(p[c.k]?esc(p[c.k]):'Sin rellenar')+'</span></div>').join('');
+    // Personas de la cuenta (solo quien la gestiona)
+    $('#bloque-cuenta').hidden=!yo.admin;
+    if(!yo.admin) return;
+    const ul=$('#usuarios'); ul.innerHTML='';
+    D.miembros.forEach(m => {
+      const li=document.createElement('li'); li.className='card';
+      li.innerHTML='<div class="row">'+avatar(m,'md')+'<div class="grow"><b class="big" style="display:block">'+esc(m.nombre)+(m.id===yo.id?' (tú)':'')+'</b><span class="muted">'+esc(m.rol||'')+'</span></div></div>'+
+        (m.admin ? '<p class="muted">Ve todo y gestiona la cuenta.</p>' :
+          '<div class="permisos">'+PERMISOS.map(x=>'<label><input type="checkbox" data-perm="'+x.k+'" '+(m.permisos&&m.permisos[x.k]?'checked':'')+'>'+esc(x.l)+'</label>').join('')+'</div>'+
+          '<div class="acciones"><button class="btn ghost small" type="button" data-del>Quitar de la cuenta</button></div>');
+      li.querySelectorAll('[data-perm]').forEach(cb => cb.addEventListener('change', () => accion(cb, async () => {
+        const permisos={...(m.permisos||{}), [cb.dataset.perm]:cb.checked}; await q(sb.from('miembros').update({permisos}).eq('id', m.id)); m.permisos=permisos; aviso('Permisos de '+m.nombre+' guardados');
+      })));
+      const del=li.querySelector('[data-del]');
+      if(del) del.addEventListener('click', () => pedirConfirmacion(li, '¿Quitar a '+m.nombre+' de la cuenta? Dejará de ver todo.', async () => { await q(sb.from('miembros').delete().eq('id', m.id)); await recargar(); aviso(m.nombre+' ya no está en la cuenta'); }, 'Sí, quitar'));
+      ul.appendChild(li);
+    });
+    if(!$('#i-permisos').children.length) $('#i-permisos').innerHTML=PERMISOS.map(x=>'<label><input type="checkbox" id="ip-'+x.k+'" '+(['agenda','avisos','contactos','paciente'].includes(x.k)?'checked':'')+'>'+esc(x.l)+'</label>').join('');
+    const pend=D.invitaciones.filter(i=>!i.usada_por && new Date(i.caduca_el)>new Date());
+    const box=$('#inv-pendientes'); box.innerHTML = pend.length ? '<h3>Invitaciones sin usar</h3>' : '';
+    pend.forEach(i => { const d=document.createElement('div'); d.className='item';
+      d.innerHTML='<div class="grow"><b>'+esc(i.nombre)+'</b><span class="muted">Código <b style="display:inline;font-family:ui-monospace,Consolas,monospace">'+esc(i.codigo)+'</b> · caduca el '+esc(fmtDiaA(i.caduca_el.slice(0,10)))+'</span></div><div class="acciones"><button class="btn ghost small" type="button" data-ver>Ver mensaje</button><button class="btn ghost small" type="button" data-del>Anular</button></div>';
+      d.querySelector('[data-ver]').addEventListener('click', () => mostrarInvitacion(i));
+      d.querySelector('[data-del]').addEventListener('click', () => pedirConfirmacion(d, '¿Anular esta invitación?', async () => { await q(sb.from('invitaciones').delete().eq('id', i.id)); await recargar(); aviso('Invitación anulada'); }, 'Sí, anular'));
+      box.appendChild(d); });
+  }
+  document.addEventListener('click', e => { if(e.target.closest('[data-cambiar]')){ prefs.cuenta=null; guardarPrefs(); cid=null; accion(null, alEntrarSinRecordar); } });
+  async function alEntrarSinRecordar(){ membresias = await q(sb.from('miembros').select('*').eq('user_id', usuario.id)); const ids=membresias.map(m=>m.cuenta_id); const cuentas = ids.length ? await q(sb.from('cuentas').select('*').in('id', ids)) : []; membresias.forEach(m => { m.cuenta=cuentas.find(c=>c.id===m.cuenta_id); }); pintarInicio(); }
+
+  $('#d-perfil').addEventListener('toggle', () => { if(!$('#d-perfil').open) return; const p=(D.paciente&&D.paciente.datos)||{};
+    $('#f-perfil').innerHTML=CAMPOS.map(c=>'<label class="f" for="pf-'+c.k+'">'+esc(c.l)+(c.largo?'<textarea id="pf-'+c.k+'" rows="2" placeholder="'+esc(c.ph)+'">'+esc(p[c.k]||'')+'</textarea>':'<input id="pf-'+c.k+'" type="text" placeholder="'+esc(c.ph)+'" value="'+esc(p[c.k]||'')+'">')+'</label>').join('')+'<button class="btn" type="submit">Guardar la ficha</button>'; });
+  $('#f-perfil').addEventListener('submit', e => { e.preventDefault(); accion(e.submitter, async () => {
+    const datos={}; CAMPOS.forEach(c => { datos[c.k]=$('#pf-'+c.k).value.trim(); });
+    await q(sb.from('paciente').update({datos}).eq('cuenta_id', cid));
+    if(D.paciente) D.paciente.datos=datos; $('#d-perfil').open=false; pintarPerfil(); aviso('Ficha guardada');
+  }); });
+
+  function mostrarInvitacion(i){
+    const enlace=location.origin+location.pathname;
+    const texto='Hola, '+i.nombre+'. Te invito a Mano a Mano para organizarnos en el cuidado de '+persona()+'.\n\n1. Entra en '+enlace+'\n2. Pulsa «Crear mi cuenta» con tu correo.\n3. Elige «Tengo un código de invitación» y escribe: '+i.codigo+'\n\nEl código caduca en 7 días.';
+    const box=$('#inv-nueva'); box.hidden=false;
+    box.innerHTML='<h3>Invitación para '+esc(i.nombre)+'</h3><p class="codigo">'+esc(i.codigo)+'</p><p class="muted small">Copia este mensaje y mándaselo por WhatsApp:</p><p class="mensaje" id="inv-texto">'+esc(texto)+'</p>'+
+      '<div class="acciones"><button class="btn" type="button" id="inv-copiar">Copiar mensaje</button><a class="btn ghost" href="https://wa.me/?text='+encodeURIComponent(texto)+'" target="_blank" rel="noopener">Abrir WhatsApp</a></div>';
+    $('#inv-copiar').addEventListener('click', () => { const sel=()=>{ const r=document.createRange(); r.selectNodeContents($('#inv-texto')); const s=getSelection(); s.removeAllRanges(); s.addRange(r); aviso('Mensaje seleccionado: puedes copiarlo'); }; try{ navigator.clipboard.writeText(texto).then(()=>aviso('Mensaje copiado'), sel); }catch(e){ sel(); } });
+    box.scrollIntoView({block:'center'});
+  }
+  $('#f-invitar').addEventListener('submit', e => { e.preventDefault(); accion(e.submitter, async () => {
+    const permisos={}; PERMISOS.forEach(x => { permisos[x.k]=$('#ip-'+x.k).checked; });
+    const inv=await q(sb.from('invitaciones').insert({cuenta_id:cid, nombre:$('#i-nombre').value.trim(), rol:$('#i-rol').value.trim(), color:COLORES[(D.miembros.length+D.invitaciones.length)%COLORES.length], permisos}).select().single());
+    e.target.reset(); $('#i-permisos').innerHTML=''; $('#d-invitar').open=false; await recargar(); mostrarInvitacion(inv); aviso('Invitación creada');
+  }); });
+
+  /* =====================================================================
+     Accesibilidad: tamaño de letra y lectura en voz alta
+     ===================================================================== */
+  const ESCALAS=[1,1.15,1.3];
+  function aplicarEscala(){ document.documentElement.style.setProperty('--scale', prefs.escala||1); }
+  $('#t-size').addEventListener('click', () => { const i=ESCALAS.indexOf(prefs.escala||1); prefs.escala=ESCALAS[(i+1)%ESCALAS.length]; aplicarEscala(); guardarPrefs(); aviso(prefs.escala===1?'Letra normal':prefs.escala===1.15?'Letra grande':'Letra muy grande'); });
+  let voz=null;
+  function elegirVoz(){ try{ const vs=speechSynthesis.getVoices(); voz=vs.find(v=>v.lang==='es-ES')||vs.find(v=>v.lang&&v.lang.startsWith('es'))||null; }catch(e){} }
+  if('speechSynthesis' in window){ elegirVoz(); speechSynthesis.onvoiceschanged=elegirVoz; }
+  $('#t-read').addEventListener('click', () => {
+    if(!('speechSynthesis' in window)){ aviso('Este navegador no puede leer en voz alta'); return; }
+    const s=document.querySelector('main section:not([hidden])');
+    const t=[...s.querySelectorAll('h2, .intro, .big, .item .grow, .check span, h3')].filter(x=>x.offsetParent!==null).map(x=>x.innerText.trim()).filter(Boolean).slice(0,14).join('. ');
+    speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(t); u.lang='es-ES'; u.rate=.85; if(voz) u.voice=voz; speechSynthesis.speak(u);
+  });
+
+  /* =====================================================================
+     ARRANQUE
+     ===================================================================== */
+  aplicarEscala();
+  if(!sb){ $('#aviso-config').hidden=false; mostrar('v-auth'); return; }
+  let enRecuperacion=false;
+  sb.auth.onAuthStateChange((evento, sesion) => {
+    if(evento==='PASSWORD_RECOVERY'){ enRecuperacion=true; usuario=sesion&&sesion.user; mostrar('v-auth'); verForm('f-nueva'); return; }
+    const antes=usuario&&usuario.id; usuario=sesion?sesion.user:null;
+    if(enRecuperacion && evento!=='USER_UPDATED') return;
+    if(!usuario){ cid=null; yo=null; mostrar('v-auth'); verForm('f-entrar'); return; }
+    if(evento==='SIGNED_IN' && antes===usuario.id && !$('#v-app').hidden) return; // misma sesión al volver a la pestaña
+    if(evento==='SIGNED_IN' || evento==='INITIAL_SESSION' || evento==='USER_UPDATED'){ enRecuperacion=false; setTimeout(() => accion(null, alEntrar), 0); }
+  });
+})();
+</script>
+</body>
+</html>
