@@ -419,6 +419,19 @@ nav.bar button[aria-current="page"]{background:var(--accent-soft);color:var(--ac
       <div><h2 id="h-perfil">Perfil</h2></div>
       <h3>Mi perfil</h3>
       <div class="card" id="mi-perfil"></div>
+      <details class="adder card" id="d-borrar-usuario">
+        <summary class="btn ghost small full">Borrar mi usuario</summary>
+        <form class="add" id="f-borrar-usuario" style="margin-top:10px">
+          <p>Se borrará tu usuario de Mano a Mano: ya no podrás entrar con este correo.</p>
+          <ul class="muted small" style="margin:0;padding-left:18px">
+            <li>Las cuentas en las que estés tú sola se borrarán enteras, con todos sus datos y fotos.</li>
+            <li>En las cuentas compartidas, desaparecerá tu perfil; lo que hayáis guardado (citas, avisos, documentos…) se queda para el resto de la familia.</li>
+            <li>Si eres la única persona que gestiona una cuenta compartida, antes tienes que hacer gestora a otra persona.</li>
+          </ul>
+          <label class="f" for="bu-confirma">Para confirmar, escribe BORRAR<input id="bu-confirma" type="text" autocomplete="off" required></label>
+          <button class="btn danger" type="submit">Borrar mi usuario para siempre</button>
+        </form>
+      </details>
 
       <div id="bloque-paciente" style="display:flex;flex-direction:column;gap:12px;padding-top:8px">
         <div><h3 id="h-paciente">Ficha de la persona cuidada</h3><p class="intro">Lo importante de un vistazo, para quien la cuide.</p></div>
@@ -542,6 +555,7 @@ const SUPABASE_CLAVE = 'sb_publishable_QCzWq5_-8DdMRkNptozzhA_LPS4hguW';
     if(m.includes('email not confirmed')) return 'Falta confirmar el correo: revisa tu bandeja de entrada.';
     if(m.includes('rate limit')||m.includes('too many')) return 'Demasiados intentos seguidos. Espera unos minutos.';
     if(m.includes('código no es válido')||m.includes('caducado')) return 'El código no es válido o ha caducado. Pide uno nuevo.';
+    if(m.includes('única persona que gestiona')) return e.message;
     if(m.includes('failed to fetch')||m.includes('network')) return 'No hay conexión. Comprueba internet e inténtalo otra vez.';
     if(m.includes('row-level security')||m.includes('permission denied')) return 'No tienes permiso para hacer esto.';
     return 'Algo ha fallado: '+((e&&e.message)||'error desconocido');
@@ -1106,7 +1120,9 @@ const SUPABASE_CLAVE = 'sb_publishable_QCzWq5_-8DdMRkNptozzhA_LPS4hguW';
       li.innerHTML='<div class="row">'+avatar(m,'md')+'<div class="grow"><b class="big" style="display:block">'+esc(m.nombre)+(m.id===yo.id?' (tú)':'')+'</b><span class="muted">'+esc(m.rol||'')+'</span></div></div>'+
         (m.admin ? '<p class="muted">Ve todo y gestiona la cuenta.</p>' :
           '<div class="permisos">'+PERMISOS.map(x=>'<label><input type="checkbox" data-perm="'+x.k+'" '+(m.permisos&&m.permisos[x.k]?'checked':'')+'>'+esc(x.l)+'</label>').join('')+'</div>'+
-          '<div class="acciones"><button class="btn ghost small" type="button" data-del>Quitar de la cuenta</button></div>');
+          '<div class="acciones"><button class="btn ghost small" type="button" data-gestora>Hacer gestora</button><button class="btn ghost small" type="button" data-del>Quitar de la cuenta</button></div>');
+      const ges=li.querySelector('[data-gestora]');
+      if(ges) ges.addEventListener('click', () => pedirConfirmacion(li, '¿Hacer gestora a '+m.nombre+'? Podrá verlo todo, invitar a gente y cambiar permisos.', async () => { await q(sb.from('miembros').update({admin:true}).eq('id', m.id)); await recargar(); aviso(m.nombre+' ya gestiona la cuenta'); }, 'Sí, hacer gestora'));
       li.querySelectorAll('[data-perm]').forEach(cb => cb.addEventListener('change', () => accion(cb, async () => {
         const permisos={...(m.permisos||{}), [cb.dataset.perm]:cb.checked}; await q(sb.from('miembros').update({permisos}).eq('id', m.id)); m.permisos=permisos; aviso('Permisos de '+m.nombre+' guardados');
       })));
@@ -1143,6 +1159,25 @@ const SUPABASE_CLAVE = 'sb_publishable_QCzWq5_-8DdMRkNptozzhA_LPS4hguW';
       await q(sb.from('cuentas').delete().eq('id', cid));
       $('#d-borrar-cuenta').open=false; prefs.cuenta=null; guardarPrefs(); cid=null; yo=null;
       aviso('Cuenta borrada'); await alEntrarSinRecordar();
+    });
+  });
+
+  $('#f-borrar-usuario').addEventListener('submit', e => { e.preventDefault();
+    if($('#bu-confirma').value.trim().toUpperCase()!=='BORRAR'){ aviso('Escribe BORRAR para confirmar.'); return; }
+    accion(e.submitter, async () => {
+      // Antes de borrar, quitar las fotos de las cuentas en las que estoy sola
+      const mias = await q(sb.from('miembros').select('*').eq('user_id', usuario.id));
+      for(const m of mias){
+        const todos = await q(sb.from('miembros').select('id').eq('cuenta_id', m.cuenta_id));
+        if(todos.length===1){
+          const fotos = await q(sb.from('fotos').select('ruta').eq('cuenta_id', m.cuenta_id));
+          if(fotos.length) await q(sb.storage.from(BUCKET).remove(fotos.map(f=>f.ruta)));
+        }
+      }
+      await q(sb.rpc('borrar_mi_usuario'));
+      prefs.cuenta=null; guardarPrefs();
+      try{ await sb.auth.signOut(); }catch(err){}
+      aviso('Tu usuario se ha borrado. Gracias por usar Mano a Mano.');
     });
   });
 
