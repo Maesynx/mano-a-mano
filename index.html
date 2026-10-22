@@ -414,6 +414,15 @@ nav.bar button[aria-current="page"]{background:var(--accent-soft);color:var(--ac
         </details>
         <div class="card" id="inv-nueva" hidden></div>
         <div id="inv-pendientes" class="list"></div>
+
+        <details class="adder card" id="d-borrar-cuenta" style="margin-top:16px;border-color:var(--danger)">
+          <summary class="btn ghost full" style="border-color:var(--danger);color:var(--danger)">Borrar esta cuenta</summary>
+          <form class="add" id="f-borrar-cuenta" style="margin-top:10px">
+            <p class="error">Se borrará todo lo de esta cuenta para todas las personas: citas, avisos, contactos, documentos y fotos. No se puede deshacer.</p>
+            <label class="f" for="bc-nombre"><span>Para confirmar, escribe el nombre de la persona cuidada: <b id="bc-pista"></b></span><input id="bc-nombre" type="text" autocomplete="off" required></label>
+            <button class="btn danger" type="submit">Borrar la cuenta para siempre</button>
+          </form>
+        </details>
       </div>
     </section>
   </main>
@@ -469,7 +478,7 @@ nav.bar button[aria-current="page"]{background:var(--accent-soft);color:var(--ac
    seguridad de la base de datos. NUNCA pongas aquí la Secret key.
    ===================================================================== */
 const SUPABASE_URL  = 'https://qyehrywdsdembcjhyjvi.supabase.co';
-const SUPABASE_CLAVE = 'PEGA_AQUI_TU_PUBLISHABLE_KEY';
+const SUPABASE_CLAVE = 'sb_publishable_QCzWq5_-8DdMRkNptozzhA_LPS4hguW';
 
 (function(){
   'use strict';
@@ -1022,6 +1031,7 @@ const SUPABASE_CLAVE = 'PEGA_AQUI_TU_PUBLISHABLE_KEY';
     // Personas de la cuenta (solo quien la gestiona)
     $('#bloque-cuenta').hidden=!yo.admin;
     if(!yo.admin) return;
+    $('#bc-pista').textContent=persona();
     const ul=$('#usuarios'); ul.innerHTML='';
     D.miembros.forEach(m => {
       const li=document.createElement('li'); li.className='card';
@@ -1055,6 +1065,18 @@ const SUPABASE_CLAVE = 'PEGA_AQUI_TU_PUBLISHABLE_KEY';
     await q(sb.from('paciente').update({datos}).eq('cuenta_id', cid));
     if(D.paciente) D.paciente.datos=datos; $('#d-perfil').open=false; pintarPerfil(); aviso('Ficha guardada');
   }); });
+
+  $('#d-borrar-cuenta').addEventListener('toggle', () => { $('#bc-nombre').value=''; });
+  $('#f-borrar-cuenta').addEventListener('submit', e => { e.preventDefault();
+    if($('#bc-nombre').value.trim().toLowerCase()!==persona().trim().toLowerCase()){ aviso('El nombre no coincide. Escríbelo igual que aparece.'); return; }
+    accion(e.submitter, async () => {
+      const fotos=await q(sb.from('fotos').select('ruta').eq('cuenta_id', cid));
+      if(fotos.length) await q(sb.storage.from(BUCKET).remove(fotos.map(f=>f.ruta)));
+      await q(sb.from('cuentas').delete().eq('id', cid));
+      $('#d-borrar-cuenta').open=false; prefs.cuenta=null; guardarPrefs(); cid=null; yo=null;
+      aviso('Cuenta borrada'); await alEntrarSinRecordar();
+    });
+  });
 
   function mostrarInvitacion(i){
     const enlace=location.origin+location.pathname;
