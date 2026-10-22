@@ -84,6 +84,18 @@ main section,.pantalla{display:flex;flex-direction:column;gap:16px;padding-top:2
 .pend.late{background:var(--warn-soft);border-color:var(--warn)}
 .chip{display:inline-block;align-self:flex-start;font-size:.8rem;font-weight:700;padding:4px 10px;border-radius:999px;background:var(--accent-soft);color:var(--accent)}
 .late .chip{background:var(--warn);color:var(--bg)}
+.cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.cal-sem span{text-align:center;font-size:.75rem;font-weight:700;color:var(--ink-soft)}
+.cal-d{min-height:48px;border-radius:10px;border:1px solid transparent;background:transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-variant-numeric:tabular-nums;padding:2px}
+.cal-d:hover{background:var(--bg)}
+.cal-d.fuera{opacity:.35}
+.cal-d.hoy{border-color:var(--accent);font-weight:700}
+.cal-d.sel{background:var(--accent);color:var(--accent-ink)}
+.cal-d .pts{display:flex;gap:3px;min-height:8px}
+.pto{display:inline-block;width:8px;height:8px;border-radius:50%;vertical-align:middle}
+.pto.cita{background:var(--accent)}
+.pto.plazo{background:var(--warn)}
+.cal-d.sel .pto.cita{background:var(--accent-ink)}
 .acciones{display:flex;gap:8px;width:100%}
 .acciones .btn{flex:1}
 .dos{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -272,6 +284,19 @@ nav.bar button[aria-current="page"]{background:var(--accent-soft);color:var(--ac
     <!-- CITAS -->
     <section id="s-agenda" aria-labelledby="h-agenda" hidden>
       <div><h2 id="h-agenda">Citas</h2><p class="intro" id="agenda-intro">Médicos, revisiones y otras citas.</p></div>
+
+      <div class="card" id="calendario">
+        <div class="row" style="flex-wrap:nowrap">
+          <button class="tool" type="button" id="cal-ant" aria-label="Mes anterior">‹</button>
+          <h3 class="grow" id="cal-mes" style="text-align:center"></h3>
+          <button class="tool" type="button" id="cal-sig" aria-label="Mes siguiente">›</button>
+        </div>
+        <div class="cal-grid cal-sem" aria-hidden="true"><span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
+        <div class="cal-grid" id="cal-grid"></div>
+        <p class="muted small"><span class="pto cita"></span> Cita &nbsp;·&nbsp; <span class="pto plazo"></span> Plazo para llamar &nbsp;·&nbsp; <button class="btn ghost small" type="button" id="cal-hoy" style="min-height:36px;padding:0 10px">Ir a hoy</button></p>
+        <div id="cal-dia" class="list"></div>
+      </div>
+
       <h3>Citas con fecha</h3>
       <ul class="list" id="citas"></ul>
       <details class="adder card" id="d-cita">
@@ -772,6 +797,7 @@ const SUPABASE_CLAVE = 'sb_publishable_QCzWq5_-8DdMRkNptozzhA_LPS4hguW';
   let editandoCita=null, convertir=null;
   function pintarCitas(){
     $('#agenda-intro').textContent='Médicos, revisiones y otras citas de '+persona()+'.';
+    pintarCalendario();
     const ul=$('#citas'), cs=citasProximas();
     ul.innerHTML = cs.length ? '' : '<li class="card muted">No hay citas próximas. Puedes añadir una abajo.</li>';
     cs.forEach(c => {
@@ -783,6 +809,43 @@ const SUPABASE_CLAVE = 'sb_publishable_QCzWq5_-8DdMRkNptozzhA_LPS4hguW';
       ul.appendChild(li);
     });
   }
+  /* ---------- Calendario del mes ---------- */
+  let calMes=(()=>{ const d=new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); })();
+  let calSel=hoyISO();
+  function pintarCalendario(){
+    const y=calMes.getFullYear(), m=calMes.getMonth();
+    const t=calMes.toLocaleDateString('es-ES',{month:'long', year:'numeric'}); $('#cal-mes').textContent=t.charAt(0).toUpperCase()+t.slice(1);
+    const inicio=new Date(y, m, 1-((new Date(y,m,1).getDay()+6)%7));   // lunes de la primera semana
+    const semanas=Math.ceil((((new Date(y,m,1).getDay()+6)%7)+new Date(y,m+1,0).getDate())/7);
+    const g=$('#cal-grid'); g.innerHTML='';
+    for(let i=0;i<semanas*7;i++){
+      const d=new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate()+i), iso=isoDe(d);
+      const nc=D.citas.filter(c=>c.fecha===iso).length, np=D.pendientes.filter(p=>p.limite===iso).length;
+      const b=document.createElement('button'); b.type='button';
+      b.className='cal-d'+(d.getMonth()!==m?' fuera':'')+(iso===hoyISO()?' hoy':'')+(iso===calSel?' sel':'');
+      b.setAttribute('aria-label', fmtDia(iso)+(nc?', '+nc+(nc===1?' cita':' citas'):'')+(np?', plazo para llamar':''));
+      if(iso===calSel) b.setAttribute('aria-pressed','true');
+      b.innerHTML='<span>'+d.getDate()+'</span><span class="pts">'+(nc?'<span class="pto cita"></span>':'')+(np?'<span class="pto plazo"></span>':'')+'</span>';
+      b.addEventListener('click', () => { calSel=iso; if(d.getMonth()!==m) calMes=new Date(d.getFullYear(), d.getMonth(), 1); pintarCalendario(); });
+      g.appendChild(b);
+    }
+    // Lo que hay el día elegido
+    const box=$('#cal-dia'); box.innerHTML='';
+    const cs=D.citas.filter(c=>c.fecha===calSel).sort((a,b)=>(a.hora||'').localeCompare(b.hora||'')), ps=D.pendientes.filter(p=>p.limite===calSel);
+    const tit=document.createElement('p'); tit.className='label'; tit.textContent=fmtDia(calSel); box.appendChild(tit);
+    if(!cs.length && !ps.length){ const n=document.createElement('p'); n.className='muted'; n.textContent='Nada este día.'; box.appendChild(n); }
+    cs.forEach(c => { const b=document.createElement('button'); b.type='button'; b.className='carpeta'; b.style.minHeight='56px';
+      b.innerHTML='<span class="pto cita"></span><span class="grow"><b>'+esc(c.que)+'</b><span class="muted">'+(c.hora?esc(hm(c.hora)):'Sin hora')+(c.donde?' · '+esc(c.donde):'')+'</span></span><span class="small muted">Modificar</span>';
+      b.addEventListener('click', () => editarCita(c)); box.appendChild(b); });
+    ps.forEach(p => { const d=document.createElement('div'); d.className='item'; d.style.padding='10px 14px';
+      d.innerHTML='<span class="pto plazo"></span><div class="grow"><b>'+esc(p.que)+'</b><span class="muted">Último día para esperar su llamada</span></div>'; box.appendChild(d); });
+    if(calSel>=hoyISO()){ const a=document.createElement('button'); a.type='button'; a.className='btn ghost small'; a.textContent='Añadir una cita este día';
+      a.addEventListener('click', () => { terminarCita(); const dd=$('#d-cita'); dd.open=true; $('#c-fecha').value=calSel; dd.scrollIntoView({block:'center'}); $('#c-que').focus({preventScroll:true}); }); box.appendChild(a); }
+  }
+  $('#cal-ant').addEventListener('click', () => { calMes=new Date(calMes.getFullYear(), calMes.getMonth()-1, 1); pintarCalendario(); });
+  $('#cal-sig').addEventListener('click', () => { calMes=new Date(calMes.getFullYear(), calMes.getMonth()+1, 1); pintarCalendario(); });
+  $('#cal-hoy').addEventListener('click', () => { const d=new Date(); calMes=new Date(d.getFullYear(), d.getMonth(), 1); calSel=hoyISO(); pintarCalendario(); });
+
   function editarCita(c){ editandoCita=c.id; convertir=null; const d=$('#d-cita'); d.open=true; $('#c-que').value=c.que; $('#c-fecha').value=c.fecha; $('#c-hora').value=hm(c.hora); $('#c-donde').value=c.donde||''; $('#c-nota').value=c.nota||''; $('#c-guardar').textContent='Guardar cambios'; $('#c-cancelar').hidden=false; d.scrollIntoView({block:'center'}); $('#c-que').focus({preventScroll:true}); }
   function terminarCita(){ editandoCita=null; convertir=null; $('#f-cita').reset(); $('#c-guardar').textContent='Guardar cita'; $('#c-cancelar').hidden=true; $('#d-cita').open=false; }
   $('#c-cancelar').addEventListener('click', terminarCita);
@@ -817,7 +880,7 @@ const SUPABASE_CLAVE = 'sb_publishable_QCzWq5_-8DdMRkNptozzhA_LPS4hguW';
           await q(sb.from('pendientes').delete().eq('id', p.id)); await recargar(); aviso('Hecho: '+p.que+' ya ha llamado'); }); return; }
         editandoCita=null; convertir=p.id; const d=$('#d-cita'); d.open=true; $('#c-que').value=p.que; $('#c-guardar').textContent='Guardar cita'; d.scrollIntoView({block:'center'}); $('#c-fecha').focus({preventScroll:true}); aviso('Escribe el día y la hora de la cita');
       });
-      li.querySelector('[data-del]').addEventListener('click', () => pedirConfirmacion(li, '¿Borrar esta llamada pendiente?', async () => { await q(sb.from('pendientes').delete().eq('id', p.id)); D.pendientes=D.pendientes.filter(x=>x.id!==p.id); pintarPendientes(); pintarHoy(); aviso('Pendiente borrada'); }));
+      li.querySelector('[data-del]').addEventListener('click', () => pedirConfirmacion(li, '¿Borrar esta llamada pendiente?', async () => { await q(sb.from('pendientes').delete().eq('id', p.id)); D.pendientes=D.pendientes.filter(x=>x.id!==p.id); pintarPendientes(); pintarCalendario(); pintarHoy(); aviso('Pendiente borrada'); }));
       ul.appendChild(li);
     });
   }
