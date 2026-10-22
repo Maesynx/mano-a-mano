@@ -10,6 +10,8 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Lexend:wght@500;600;700&display=swap">
 <!-- Librería oficial de Supabase (versión fija) -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
+<!-- Si el primer servidor falla, se descarga la misma librería desde otro -->
+<script>if(!window.supabase){document.write('<script src="https://unpkg.com/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"><\/script>');}</script>
 <style>
 /* =====================================================================
    ESTILOS. Colores y tipografía en variables (tokens) para modo claro y oscuro.
@@ -174,7 +176,10 @@ nav.bar button[aria-current="page"]{background:var(--accent-soft);color:var(--ac
     <svg width="56" height="56" viewBox="0 0 48 48" aria-hidden="true"><circle cx="18" cy="24" r="12" fill="none" stroke="currentColor" stroke-width="3"/><circle cx="30" cy="24" r="12" fill="none" stroke="var(--accent)" stroke-width="3"/></svg>
     <div><h1>Mano a Mano</h1><p class="muted">Cuidar en familia, entre todos.</p></div>
   </div>
-  <p id="aviso-config" class="card error" hidden>Falta poner la clave de Supabase en el archivo (busca «PEGA_AQUI»). Sin ella la app no puede guardar nada.</p>
+  <div id="aviso-config" class="card" hidden>
+    <p class="error" id="aviso-config-t"></p>
+    <button class="btn" type="button" onclick="location.reload()">Volver a intentarlo</button>
+  </div>
 
   <div class="tabs" role="tablist">
     <button type="button" role="tab" id="tab-entrar" aria-selected="true">Entrar</button>
@@ -1176,7 +1181,12 @@ const SUPABASE_CLAVE = 'sb_publishable_QCzWq5_-8DdMRkNptozzhA_LPS4hguW';
      ARRANQUE
      ===================================================================== */
   aplicarEscala();
-  if(!sb){ $('#aviso-config').hidden=false; mostrar('v-auth'); return; }
+  if(!sb){
+    $('#aviso-config-t').textContent = (!SUPABASE_CLAVE || SUPABASE_CLAVE.startsWith('PEGA_AQUI'))
+      ? 'Falta poner la clave de Supabase en el archivo (busca «PEGA_AQUI»). Sin ella la app no puede guardar nada.'
+      : 'No se ha podido conectar. Comprueba que tienes internet y vuelve a intentarlo. Si sigue sin funcionar, espera unos minutos.';
+    $('#aviso-config').hidden=false; mostrar('v-auth'); return;
+  }
   let enRecuperacion=false;
   sb.auth.onAuthStateChange((evento, sesion) => {
     if(evento==='PASSWORD_RECOVERY'){ enRecuperacion=true; usuario=sesion&&sesion.user; mostrar('v-auth'); verForm('f-nueva'); return; }
